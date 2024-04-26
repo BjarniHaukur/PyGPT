@@ -18,7 +18,7 @@ python -m venv venv
 .\venv\Scripts\activate
 ```
 
-## Install Dependencies
+**Install Dependencies**
 
 With the virtual environment activated, install the project dependencies:
 
