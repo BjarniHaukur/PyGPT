@@ -27,3 +27,8 @@ pip install -r requirements.txt
 ```
 
 Let VSCode install the requirements for running the notebooks.
+
+**CUDA**
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
