@@ -17,3 +17,6 @@ venv.bak/
 
 # data
 data/*
+
+# ignore pytorch models
+**/*.ckpt
