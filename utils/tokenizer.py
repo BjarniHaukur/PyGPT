@@ -82,7 +82,7 @@ class BPETokenizer:
                     token = substring
                     token_idx = j - i
                 
-            if token_idx == -1: raise RuntimeError()
+            if token_idx == -1: raise RuntimeError() # should always find some token unless fit on data that does not have a character being tokenized
 
             tokens.append(self.chr_to_ids[token])
             i += token_idx

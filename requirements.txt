@@ -1,6 +1,7 @@
 numpy
 matplotlib
 tqdm
+wandb
 
 torch
 torchvision
