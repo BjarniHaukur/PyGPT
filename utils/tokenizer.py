@@ -27,11 +27,18 @@ def replace_pair(ids:list[int], pair:tuple[int,int])->list[int]:
     return new_ids
 
 class BPETokenizer:
-    def __init__(self):
-        self.chr_to_ids = {}
-        self.ids_to_chr = {}
+    def __init__(self, initial_tokens:str=""):
+        # so that we can extract all tokens in our dataset but only train on a subset
+        # otherwise e.g. one file could have an emoji which is not present in our training set causing the tokenization to fail
+        self.__initialize_tokens(initial_tokens)
+
+    def __initialize_tokens(self, text:str):
+        assert not hasattr(self, "chr_to_ids"), "Cannot override existing vocabulary"
+        self.chr_to_ids = {c:i for i,c in enumerate(sorted(set(text)))}
+        self.ids_to_chr = {i:c for c,i in self.chr_to_ids.items()}
 
     def __len__(self): return len(self.chr_to_ids)
+    def __getitem__(self, idx:int): return self.ids_to_chr[idx]
 
     def save(self, filename: str):
         CHECKPOINT_PATH.mkdir(parents=True, exist_ok=True)
@@ -52,28 +59,26 @@ class BPETokenizer:
         tokenizer.ids_to_chr = {int(i):c for i,c in data['ids_to_chr'].items()}
         return tokenizer
     
-    @classmethod
-    def fit(cls, text:str, iterations:int):
-        tok = cls()
-        tok.ids_to_chr = {i:c for i,c in enumerate(set(text))}
-        tok.chr_to_ids = {c:i for i,c in tok.ids_to_chr.items()}
+    def fit(self, text:str, iterations:int):
+        if len(self) == 0: self.__initialize_tokens(text)
+        assert set(text).issubset(set(self.chr_to_ids.keys())), "Character not found in vocabulary"
 
-        ids = tok.tokenize(text)
+        ids = self.tokenize(text)
         for _ in tqdm(range(iterations), desc="Fitting tokenizer ..."):
             pair = most_common_pair(ids)
             ids = replace_pair(ids, pair)
-            new_id = max(tok.ids_to_chr) + 1
-            tok.ids_to_chr[new_id] = tok.ids_to_chr[pair[0]] + tok.ids_to_chr[pair[1]]
+            new_id = max(self.ids_to_chr) + 1
+            self.ids_to_chr[new_id] = self.ids_to_chr[pair[0]] + self.ids_to_chr[pair[1]]
 
-        tok.chr_to_ids = {c:i for i,c in tok.ids_to_chr.items()} # ugly I know
-        return tok
+        self.chr_to_ids = {c:i for i,c in self.ids_to_chr.items()} # ugly I know
+        return self
 
     def tokenize(self, text:str)->list[int]:
         tokens = []
         longest_token = max(len(x) for x in self.ids_to_chr.values())
 
         i = 0
-        while i < len(text): # find the longest substring included in the vocabulary
+        while i < len(text): # find each longest substring included in the vocabulary
             token = ""
             token_idx = -1
             for j in range(i+1, min(len(text)+1, i+longest_token+1)):
