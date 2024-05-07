@@ -27,16 +27,21 @@ def replace_pair(ids:list[int], pair:tuple[int,int])->list[int]:
     return new_ids
 
 class BPETokenizer:
-    def __init__(self, initial_tokens:str=""):
-        # so that we can extract all tokens in our dataset but only train on a subset
-        # otherwise e.g. one file could have an emoji which is not present in our training set causing the tokenization to fail
-        self.__initialize_tokens(initial_tokens)
-
+    BOS, BOS_ID = "<bos>", 0
+    EOS, EOS_ID = "<eos>", 1
+    PAD, PAD_ID = "<pad>", 2
+    UNK, UNK_ID = "<unk>", 3
+    
+    def __init__(self):
+        self.__initialize_tokens("")
+        
     def __initialize_tokens(self, text:str):
         assert not hasattr(self, "chr_to_ids"), "Cannot override existing vocabulary"
-        self.chr_to_ids = {c:i for i,c in enumerate(sorted(set(text)))}
+        self.chr_to_ids = {self.BOS:0, self.EOS:1, self.PAD:2, self.UNK:3}
+        
+        for c in sorted(set(text)): self.chr_to_ids[c] = len(self.chr_to_ids)
         self.ids_to_chr = {i:c for c,i in self.chr_to_ids.items()}
-
+        
     def __len__(self): return len(self.chr_to_ids)
     def __getitem__(self, idx:int): return self.ids_to_chr[idx]
 
@@ -60,9 +65,11 @@ class BPETokenizer:
         return tokenizer
     
     def fit(self, text:str, iterations:int):
-        if len(self) == 0: self.__initialize_tokens(text)
-        assert set(text).issubset(set(self.chr_to_ids.keys())), "Character not found in vocabulary"
-
+        for c in sorted(set(text)):
+            if c not in self.chr_to_ids: self.chr_to_ids[c] = len(self.chr_to_ids)
+        
+        self.ids_to_chr = {i:c for c,i in self.chr_to_ids.items()}
+        
         ids = self.tokenize(text)
         for _ in tqdm(range(iterations), desc="Fitting tokenizer ..."):
             pair = most_common_pair(ids)
@@ -87,12 +94,17 @@ class BPETokenizer:
                     token = substring
                     token_idx = j - i
                 
-            if token_idx == -1: raise RuntimeError() # should always find some token unless fit on data that does not have a character being tokenized
-
+            if token_idx == -1:
+                token = self.UNK
+                token_idx = 1
+                
             tokens.append(self.chr_to_ids[token])
             i += token_idx
 
         return tokens
+    
+    def detokenize(self, tokens:list[int])->str:
+        return "".join(self.ids_to_chr[token] for token in tokens)
 
     def print_tokens(self, text):
         tokens = self.tokenize(text)
