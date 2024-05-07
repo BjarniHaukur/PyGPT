@@ -14,7 +14,8 @@ class PY150kDataset(Dataset):
 
     @lru_cache() # creates a dictionary behind the scenes which maps idx to the data, i.e. only tokenize once
     def __getitem__(self, idx:int):
-        return self.tokenizer.tokenize(open("data/PY150K/" + self.files[idx]).read())
+        tokens = self.tokenizer.tokenize(open("data/PY150K/" + self.files[idx], encoding='iso-8859-1').read())
+        return torch.tensor(tokens)
     
     def __len__(self): return len(self.files)
 
