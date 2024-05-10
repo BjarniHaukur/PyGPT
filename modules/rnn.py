@@ -24,26 +24,28 @@ class PyRNN(nn.Module):
             nn.init.zeros_(self.BI[layer])
             nn.init.zeros_(self.BH[layer])
 
-    def forward(self, x:Tensor, h0:Tensor=None)->tuple[Tensor, Tensor]:
+    def forward(self, x:Tensor, h_0:Tensor=None)->tuple[Tensor, Tensor]:
         B, L, _ = x.shape # batch, length, dimensionality
 
-        if h0 is None:
-            h0 = torch.zeros(self.n_layers, B, self.hidden_dim, device=x.device, requires_grad=True)
+        if h_0 is None:
+            h_0 = torch.zeros(self.n_layers, B, self.hidden_dim, device=x.device)
 
-        ht = h0.clone()
+        h_t_minus_1 = h_0
+        h_t = h_0
 
         output = []
         for t in range(L):
             for layer in range(self.n_layers):
-                x_layer = x[:, t] if layer == 0 else ht[layer - 1] # first layers input is x, other layers receive the previous ht
-                ht[layer] = torch.tanh(
+                x_layer = x[:, t] if layer == 0 else h_t[layer - 1] # first layers input is x, other layers receive the previous h_t
+                h_t[layer] = torch.tanh(
                     torch.mm(x_layer, self.WI[layer]) + self.BI[layer] +
-                    torch.mm(ht[layer], self.WH[layer]) + self.BH[layer]
+                    torch.mm(h_t_minus_1[layer], self.WH[layer]) + self.BH[layer]
                 ) # don't know why but pytorch's implementation has two learnable biases... would assume that they could be combined into one
-            output.append(ht[-1])
+            output.append(h_t[-1])
+            h_t_minus_1 = h_t
 
         output = torch.stack(output, dim=1)
-        return output, ht
+        return output, h_t
 
 
 if __name__ == "__main__":
@@ -62,7 +64,7 @@ if __name__ == "__main__":
     def copy_weights_to_torch_rnn(py_rnn, torch_rnn):
         for i in range(py_rnn.n_layers):
             getattr(torch_rnn, 'weight_ih_l' + str(i)).data.copy_(py_rnn.WI[i].data.T)
-            getattr(torch_rnn, 'weight_hh_l' + str(i)).data.copy_(py_rnn.WH[i].data)
+            getattr(torch_rnn, 'weight_hh_l' + str(i)).data.copy_(py_rnn.WH[i].data.T)
             getattr(torch_rnn, 'bias_ih_l' + str(i)).data.copy_(py_rnn.BI[i].data)
             getattr(torch_rnn, 'bias_hh_l' + str(i)).data.copy_(py_rnn.BH[i].data)
 
