@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 
 class PY150kDataset(Dataset):
     def __init__(self, split:Literal["train","eval"], tokenizer_name:str):
-        self.files = open("data/PY150K/python" + "100k_train.txt" if split=="train" else "50k_eval.txt", "r").read().split("\n")
+        self.files = open("data/PY150K/python" + "100k_train.txt" if split=="train" else "50k_eval.txt", "r",encoding='utf-8').read().split("\n")
         self.tokenizer = BPETokenizer.load(tokenizer_name)
 
     @lru_cache() # creates a dictionary behind the scenes which maps idx to the data, i.e. only tokenize once
