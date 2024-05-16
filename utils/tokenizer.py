@@ -27,16 +27,21 @@ def replace_pair(ids:list[int], pair:tuple[int,int])->list[int]:
     return new_ids
 
 class BPETokenizer:
-    def __init__(self, initial_tokens:str=""):
-        # so that we can extract all tokens in our dataset but only train on a subset
-        # otherwise e.g. one file could have an emoji which is not present in our training set causing the tokenization to fail
-        self.__initialize_tokens(initial_tokens)
-
+    BOS, BOS_ID = "<bos>", 0
+    EOS, EOS_ID = "<eos>", 1
+    PAD, PAD_ID = "<pad>", 2
+    UNK, UNK_ID = "<unk>", 3
+    
+    def __init__(self):
+        self.__initialize_tokens("")
+        
     def __initialize_tokens(self, text:str):
         assert not hasattr(self, "chr_to_ids"), "Cannot override existing vocabulary"
-        self.chr_to_ids = {c:i for i,c in enumerate(sorted(set(text)))}
+        self.chr_to_ids = {self.BOS:0, self.EOS:1, self.PAD:2, self.UNK:3}
+        
+        for c in sorted(set(text)): self.chr_to_ids[c] = len(self.chr_to_ids)
         self.ids_to_chr = {i:c for c,i in self.chr_to_ids.items()}
-
+        
     def __len__(self): return len(self.chr_to_ids)
     def __getitem__(self, idx:int): return self.ids_to_chr[idx]
 
@@ -59,19 +64,23 @@ class BPETokenizer:
         tokenizer.ids_to_chr = {int(i):c for i,c in data['ids_to_chr'].items()}
         return tokenizer
     
-    def fit(self, text:str, iterations:int):
-        if len(self) == 0: self.__initialize_tokens(text)
-        assert set(text).issubset(set(self.chr_to_ids.keys())), "Character not found in vocabulary"
-
-        ids = self.tokenize(text)
+    @classmethod
+    def fit(cls, text:str, iterations:int):
+        tok = cls()
+        for c in sorted(set(text)):
+            if c not in tok.chr_to_ids: tok.chr_to_ids[c] = len(tok.chr_to_ids)
+        
+        tok.ids_to_chr = {i:c for c,i in tok.chr_to_ids.items()}
+        
+        ids = tok.tokenize(text)
         for _ in tqdm(range(iterations), desc="Fitting tokenizer ..."):
             pair = most_common_pair(ids)
             ids = replace_pair(ids, pair)
-            new_id = max(self.ids_to_chr) + 1
-            self.ids_to_chr[new_id] = self.ids_to_chr[pair[0]] + self.ids_to_chr[pair[1]]
+            new_id = max(tok.ids_to_chr) + 1
+            tok.ids_to_chr[new_id] = tok.ids_to_chr[pair[0]] + tok.ids_to_chr[pair[1]]
 
-        self.chr_to_ids = {c:i for i,c in self.ids_to_chr.items()} # ugly I know
-        return self
+        tok.chr_to_ids = {c:i for i,c in tok.ids_to_chr.items()} # ugly I know
+        return tok
 
     def tokenize(self, text:str)->list[int]:
         tokens = []
@@ -87,17 +96,35 @@ class BPETokenizer:
                     token = substring
                     token_idx = j - i
                 
-            if token_idx == -1: raise RuntimeError() # should always find some token unless fit on data that does not have a character being tokenized
-
+            if token_idx == -1:
+                token = self.UNK
+                token_idx = 1
+                
             tokens.append(self.chr_to_ids[token])
             i += token_idx
 
         return tokens
+    
+    def detokenize(self, tokens:list[int])->str:
+        return "".join(self.ids_to_chr[token] for token in tokens)
 
-    def print_tokens(self, text):
+    def color_text_ansi(self, text:str)->str:
         tokens = self.tokenize(text)
+        colored = ""
         for i, token in enumerate(tokens):
-            color_print(self.ids_to_chr[token], i)
+            color = COLORS[i % len(COLORS)]
+            colored += ansi_color(color) + self.ids_to_chr[token]
+        return colored
+    
+    def color_text_html(self, text:str)->str:
+        tokens = self.tokenize(text)
+        colored = ""
+        for i, token in enumerate(tokens):
+            color = COLORS[i % len(COLORS)]
+            token_text = self.ids_to_chr[token]
+            token_text = token_text.replace("\n", "<br>").replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;")
+            colored += f'<span {html_color(color)}>{token_text}</span>'
+        return colored
 
 
 RESET_BG = '\x1b[0m'  # ANSI code to reset background color
@@ -109,10 +136,24 @@ COLORS = [
     (218, 255, 194),  # light lime
 ]
 
-def bg_color(rgb:tuple[int, int, int]) -> str:
+def ansi_color(rgb:tuple[int, int, int]) -> str:
     """Return ANSI escape code for a custom RGB background color."""
     return f'\x1b[48;2;{rgb[0]};{rgb[1]};{rgb[2]}m'
 
-def color_print(text:str, color_idx:int):
-     color = COLORS[color_idx % len(COLORS)]
-     print(bg_color(color) + text, end='')
+def html_color(rgb:tuple[int, int, int]) -> str:
+    """Return HTML style for a custom RGB text color."""
+    return f'style="color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]});"'
+
+
+if __name__ == "__main__":
+    import random
+    random.seed(1337) # do not change
+
+    # We use ISO-8859-1 instead of UTF-8 because it encodes each character as a single byte. In contrast, UTF-8’s variable-length encoding significantly increase the vocabulary size.
+    train_files = open("data/PY150K/python100k_train.txt", "r", encoding="utf-8").read().split("\n")[:-1] # remove the last empty line
+    train_texts = [open("data/PY150K/" + path, encoding="iso-8859-1").read() for path in train_files]
+
+    # Our starting vocabulary size is around 130, tokens which do not appear here are all considered <unk>
+    tok = BPETokenizer.fit("".join(random.sample(train_texts, 100)), 100) # after fitting we should have 130 + number_of_iterations tokens
+    # tok = BPETokenizer.load("py150k")
+    tok.save("my_tokenizer")
