@@ -32,8 +32,8 @@ class BPETokenizer:
     PAD, PAD_ID = "<pad>", 2
     UNK, UNK_ID = "<unk>", 3
     
-    def __init__(self):
-        self.__initialize_tokens("")
+    def __init__(self, text:str=""):
+        self.__initialize_tokens(text)
         
     def __initialize_tokens(self, text:str):
         assert not hasattr(self, "chr_to_ids"), "Cannot override existing vocabulary"
@@ -42,7 +42,7 @@ class BPETokenizer:
         for c in sorted(set(text)): self.chr_to_ids[c] = len(self.chr_to_ids)
         self.ids_to_chr = {i:c for c,i in self.chr_to_ids.items()}
         
-    def __len__(self): return len(self.chr_to_ids)
+    def __len__(self): return len(self.chr_to_ids) 
     def __getitem__(self, idx:int): return self.ids_to_chr[idx]
 
     def save(self, filename: str):
@@ -66,17 +66,13 @@ class BPETokenizer:
     
     @classmethod
     def fit(cls, text:str, iterations:int):
-        tok = cls()
-        for c in sorted(set(text)):
-            if c not in tok.chr_to_ids: tok.chr_to_ids[c] = len(tok.chr_to_ids)
-        
-        tok.ids_to_chr = {i:c for c,i in tok.chr_to_ids.items()}
+        tok = cls(text)
         
         ids = tok.tokenize(text)
         for _ in tqdm(range(iterations), desc="Fitting tokenizer ..."):
             pair = most_common_pair(ids)
             ids = replace_pair(ids, pair)
-            new_id = max(tok.ids_to_chr) + 1
+            new_id = len(tok)
             tok.ids_to_chr[new_id] = tok.ids_to_chr[pair[0]] + tok.ids_to_chr[pair[1]]
 
         tok.chr_to_ids = {c:i for i,c in tok.ids_to_chr.items()} # ugly I know
@@ -95,6 +91,8 @@ class BPETokenizer:
                 if substring in self.chr_to_ids:
                     token = substring
                     token_idx = j - i
+                else:
+                    break # as soon as a substring is not in the vocabulary we stop
                 
             if token_idx == -1:
                 token = self.UNK
