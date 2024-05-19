@@ -5,6 +5,11 @@ from pathlib import Path
 
 CHECKPOINT_PATH = Path("checkpoints/tokenizer/")
 
+BOS, BOS_ID = "<bos>", 0
+EOS, EOS_ID = "<eos>", 1
+PAD, PAD_ID = "<pad>", 2
+UNK, UNK_ID = "<unk>", 3
+
     
 def most_common_pair(ids:list[int])->tuple[int,int]:
     counts = {}
@@ -27,17 +32,12 @@ def replace_pair(ids:list[int], pair:tuple[int,int])->list[int]:
     return new_ids
 
 class BPETokenizer:
-    BOS, BOS_ID = "<bos>", 0
-    EOS, EOS_ID = "<eos>", 1
-    PAD, PAD_ID = "<pad>", 2
-    UNK, UNK_ID = "<unk>", 3
-    
     def __init__(self, text:str=""):
         self.__initialize_tokens(text)
         
     def __initialize_tokens(self, text:str):
         assert not hasattr(self, "chr_to_ids"), "Cannot override existing vocabulary"
-        self.chr_to_ids = {self.BOS:0, self.EOS:1, self.PAD:2, self.UNK:3}
+        self.chr_to_ids = {BOS: BOS_ID, EOS: EOS_ID, PAD: PAD_ID, UNK: UNK_ID}
         
         for c in sorted(set(text)): self.chr_to_ids[c] = len(self.chr_to_ids)
         self.ids_to_chr = {i:c for c,i in self.chr_to_ids.items()}
