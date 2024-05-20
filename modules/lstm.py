@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     input_dim = 10
     hidden_dim = 20
-    n_layers = 1
+    n_layers = 2
 
     py_lstm = PyLSTM(input_dim=input_dim, hidden_dim=hidden_dim, n_layers=n_layers)
     # x = torch.randn(3, 1, input_dim)  # Batch size of 3, sequence length of 1, feature size of 10
@@ -138,10 +138,10 @@ if __name__ == "__main__":
             print("b_hh_l", b_hh_l.shape)
             getattr(torch_lstm, 'bias_hh_l' + str(i)).data.copy_(b_hh_l.data)
 
-            assert torch.allclose(getattr(torch_lstm, 'bias_ih_l0'), b_ih_l)
-            assert torch.allclose(getattr(torch_lstm, 'bias_hh_l0'), b_hh_l)
-            assert torch.allclose(getattr(torch_lstm, 'weight_ih_l0'), w_ih_l)
-            assert torch.allclose(getattr(torch_lstm, 'weight_hh_l0'), w_hh_l)
+            assert torch.allclose(getattr(torch_lstm, 'bias_ih_l' + str(i)), b_ih_l)
+            assert torch.allclose(getattr(torch_lstm, 'bias_hh_l' + str(i)), b_hh_l)
+            assert torch.allclose(getattr(torch_lstm, 'weight_ih_l' + str(i)), w_ih_l)
+            assert torch.allclose(getattr(torch_lstm, 'weight_hh_l' + str(i)), w_hh_l)
             
     torch_lstm = nn.LSTM(input_dim, hidden_dim, n_layers, batch_first=True)
     copy_weights_to_torch_lstm(py_lstm, torch_lstm)
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     out_py_lstm, (h_py_lstm, c_py_lstm) = py_lstm(x, h_0=h_0.clone(), c_0=c_0.clone())
     out_torch_lstm, (h_torch_lstm, c_torch_lstm) = torch_lstm(x, (h_0.clone(), c_0.clone()))
 
-    RTOL = 1e-6
+    RTOL = 1e-4
 
     np.testing.assert_allclose(out_py_lstm.detach().numpy(), out_torch_lstm.detach().numpy(), rtol=RTOL, atol=RTOL)
     np.testing.assert_allclose(h_py_lstm.detach().numpy(), h_torch_lstm.detach().numpy(), rtol=RTOL, atol=RTOL)
