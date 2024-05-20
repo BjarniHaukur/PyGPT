@@ -1,10 +1,12 @@
+import random
+
 import torch
 import torch.nn.functional as F
 
-from tokenizer import BOS_ID, EOS_ID
+from .tokenizer import BOS_ID, EOS_ID
 
-def beam_search(model, beam_width:int=3, max_length:int=50)->list[int]:
-    sequences = [[BOS_ID]]
+def beam_search(model, beam_width:int=3, max_length:int=50, starting_tokens:list[int]=None)->list[int]:
+    sequences = [[BOS_ID] + starting_tokens or []]
     scores = [0]
     
     for _ in range(max_length):
@@ -12,8 +14,8 @@ def beam_search(model, beam_width:int=3, max_length:int=50)->list[int]:
         for i in range(len(sequences)):
             seq = sequences[i]
             x = torch.tensor(seq).unsqueeze(0)
-            logits = model(x)
-            p = F.log_softmax(logits[:, -1, :], dim=-1)
+            logits, _ = model(x)
+            p = F.softmax(logits[:, -1, :], dim=-1)
             
             top_probs, top_indices = torch.topk(p, beam_width)
             for j in range(beam_width):
@@ -27,4 +29,4 @@ def beam_search(model, beam_width:int=3, max_length:int=50)->list[int]:
         if sequences[0][-1] == EOS_ID:
             break
         
-    return sequences[0]
+    return sequences[0][1:] # remove BOS token
