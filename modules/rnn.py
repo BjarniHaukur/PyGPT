@@ -41,7 +41,7 @@ class PyRNN(nn.Module):
                     x_layer @ self.WI[layer].T + self.BI[layer] +
                     h_t_minus_1[layer] @ self.WH[layer].T + self.BH[layer]
                 ) # don't know why but pytorch's implementation has two learnable biases... would assume that they could be combined into one
-            output.append(h_t[-1])
+            output.append(h_t[-1].clone())
 
         output = torch.stack(output, dim=1)
         return output, h_t
@@ -50,17 +50,9 @@ class PyRNN(nn.Module):
 if __name__ == "__main__":
     import numpy as np
 
-    input_dim = 2
-    hidden_dim = 3
-    n_layers = 1
-
-    py_rnn = PyRNN(input_dim=input_dim, hidden_dim=hidden_dim, n_layers=n_layers)
-    x = torch.randn(1, 2, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10
-    output, h_n = py_rnn(x)
-
-
-    print("Output shape:", output.shape)  # Expected: (5, 3, 20)
-    print("Hidden state shape:", h_n.shape)  # Expected: (2, 5, 20) for each layer
+    input_dim = 10
+    hidden_dim = 20
+    n_layers = 2
 
     def copy_weights_to_torch_rnn(py_rnn, torch_rnn):
         for i in range(py_rnn.n_layers):
@@ -68,7 +60,8 @@ if __name__ == "__main__":
             getattr(torch_rnn, 'weight_hh_l' + str(i)).data.copy_(py_rnn.WH[i].data)
             getattr(torch_rnn, 'bias_ih_l' + str(i)).data.copy_(py_rnn.BI[i].data)
             getattr(torch_rnn, 'bias_hh_l' + str(i)).data.copy_(py_rnn.BH[i].data)
-
+    
+    py_rnn = PyRNN(input_dim=input_dim, hidden_dim=hidden_dim, n_layers=n_layers)
     torch_rnn = nn.RNN(input_dim,  hidden_dim, n_layers, nonlinearity='tanh', batch_first=True)
     copy_weights_to_torch_rnn(py_rnn, torch_rnn)
 
@@ -78,12 +71,7 @@ if __name__ == "__main__":
     out_torch_rnn, h_torch_rnn = torch_rnn(x, h0)
 
     
-
     np.testing.assert_allclose(out_py_rnn.detach().numpy(), out_torch_rnn.detach().numpy(), rtol=1e-4)
     np.testing.assert_allclose(h_py_rnn.detach().numpy(), h_torch_rnn.detach().numpy(), rtol=1e-4)
     
-    print(out_py_rnn)
     
-
-
-
