@@ -57,6 +57,8 @@ if __name__ == "__main__":
     py_rnn = PyRNN(input_dim=input_dim, hidden_dim=hidden_dim, n_layers=n_layers)
     x = torch.randn(1, 2, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10
     output, h_n = py_rnn(x)
+
+
     print("Output shape:", output.shape)  # Expected: (5, 3, 20)
     print("Hidden state shape:", h_n.shape)  # Expected: (2, 5, 20) for each layer
 
@@ -75,10 +77,13 @@ if __name__ == "__main__":
     out_py_rnn, h_py_rnn = py_rnn(x, h0)
     out_torch_rnn, h_torch_rnn = torch_rnn(x, h0)
 
+    
+
     np.testing.assert_allclose(out_py_rnn.detach().numpy(), out_torch_rnn.detach().numpy(), rtol=1e-4)
     np.testing.assert_allclose(h_py_rnn.detach().numpy(), h_torch_rnn.detach().numpy(), rtol=1e-4)
     
     print(out_py_rnn)
+    
 
 
 
