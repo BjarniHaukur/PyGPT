@@ -116,33 +116,23 @@ if __name__ == "__main__":
     hidden_dim = 20
     n_layers = 2
 
-    py_lstm = PyLSTM(input_dim=input_dim, hidden_dim=hidden_dim, n_layers=n_layers)
-    # x = torch.randn(3, 1, input_dim)  # Batch size of 3, sequence length of 1, feature size of 10
-    # output, (h_n, c_n) = py_lstm(x)
-    # print("Output shape:", output.shape)  # Expected: (3, 1, 20)
-    # print("Hidden state shape:", h_n.shape)  # Expected: (1, 3, 20) for each layer
-
     def copy_weights_to_torch_lstm(py_lstm, torch_lstm):
         for i in range(py_lstm.n_layers):
-            # torch_weight = getattr(torch_lstm, 'bias_ih_l' + str(i))
-            # print("torch-b_ih_l", torch_weight.shape)
-            
             w_ih_l = torch.vstack([py_lstm.W_ii[i].T, py_lstm.W_if[i].T, py_lstm.W_ig[i].T, py_lstm.W_io[i].T])
             getattr(torch_lstm, 'weight_ih_l' + str(i)).data.copy_(w_ih_l.data)
             w_hh_l = torch.vstack([py_lstm.W_hi[i].T, py_lstm.W_hf[i].T, py_lstm.W_hg[i].T, py_lstm.W_ho[i].T])
             getattr(torch_lstm, 'weight_hh_l' + str(i)).data.copy_(w_hh_l.data)
             b_ih_l = torch.hstack([py_lstm.B_ii[i], py_lstm.B_if[i], py_lstm.B_ig[i], py_lstm.B_io[i]])
-            print("b_ih_l", b_ih_l.shape)
             getattr(torch_lstm, 'bias_ih_l' + str(i)).data.copy_(b_ih_l.data)
             b_hh_l = torch.hstack([py_lstm.B_hi[i], py_lstm.B_hf[i], py_lstm.B_hg[i], py_lstm.B_ho[i]])
-            print("b_hh_l", b_hh_l.shape)
             getattr(torch_lstm, 'bias_hh_l' + str(i)).data.copy_(b_hh_l.data)
 
             assert torch.allclose(getattr(torch_lstm, 'bias_ih_l' + str(i)), b_ih_l)
             assert torch.allclose(getattr(torch_lstm, 'bias_hh_l' + str(i)), b_hh_l)
             assert torch.allclose(getattr(torch_lstm, 'weight_ih_l' + str(i)), w_ih_l)
             assert torch.allclose(getattr(torch_lstm, 'weight_hh_l' + str(i)), w_hh_l)
-            
+    
+    py_lstm = PyLSTM(input_dim=input_dim, hidden_dim=hidden_dim, n_layers=n_layers)
     torch_lstm = nn.LSTM(input_dim, hidden_dim, n_layers, batch_first=True)
     copy_weights_to_torch_lstm(py_lstm, torch_lstm)
 
