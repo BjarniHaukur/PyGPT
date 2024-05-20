@@ -1,0 +1,7 @@
+model_type: PyRNN
+wandb_project: PyGPT
+wandb_group: RNNs
+tokenizer_name: py150k
+vocab_size: 376
+hidden_size: 256
+num_layers: 1

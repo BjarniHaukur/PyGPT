@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 class PyGRUCell(nn.Module):
     def __init__(self, input_dim:int, hidden_dim:int):
-        super(PyGRUCell,self).__init__()
+        super(PyGRUCell, self).__init__()
         self.input_dim, self.hidden_dim = input_dim, hidden_dim
 
         init_weight_matrix = lambda *shape: nn.Parameter(torch.empty(*shape) )

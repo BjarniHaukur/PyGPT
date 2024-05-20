@@ -14,7 +14,8 @@ def beam_search(model, beam_width:int=3, max_length:int=50, starting_tokens:list
         for i in range(len(sequences)):
             seq = sequences[i]
             x = torch.tensor(seq).unsqueeze(0)
-            logits, _ = model(x)
+            logits = model(x)
+            if isinstance(logits, tuple): logits = logits[0]
             p = F.softmax(logits[:, -1, :], dim=-1)
             
             top_probs, top_indices = torch.topk(p, beam_width)
