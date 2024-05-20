@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class PyGRU(nn.Module):
+class PyGRUCell(nn.Module):
     def __init__(self, input_dim:int, hidden_dim:int):
-        super(PyGRU,self).__init__()
+        super(PyGRUCell,self).__init__()
         self.input_dim, self.hidden_dim = input_dim, hidden_dim
 
         init_weight_matrix = lambda *shape: nn.Parameter(torch.empty(*shape) )
@@ -96,7 +96,7 @@ if __name__ == "__main__":
            
 
 
-    py_gru = PyGRU(input_dim=input_dim, hidden_dim=hidden_dim)
+    py_gru = PyGRUCell(input_dim=input_dim, hidden_dim=hidden_dim)
     x = torch.randn(5, 3, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10
     output, h_n = py_gru(x)
     print("Output shape:", output.shape)  # Expected: (5, 3, 20)

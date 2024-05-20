@@ -2,13 +2,13 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
-from gru import PyGRU
+from gru import PyGRUCell
 
-class deepGRU(nn.Module):
+class PyGRU(nn.Module):
     def __init__(self, input_dim:int, hidden_dim:int, num_layers:int):
-        super(deepGRU,self).__init__()
+        super(PyGRU,self).__init__()
         self.input_dim, self.hidden_dim, self.num_layers = input_dim, hidden_dim, num_layers
-        self.grus = nn.Sequential(*[PyGRU(
+        self.grus = nn.Sequential(*[PyGRUCell(
             input_dim if i==0 else hidden_dim, hidden_dim)
                                     for i in range(num_layers)])
         
@@ -59,7 +59,7 @@ if __name__ == "__main__":
            
 
 
-    deep_gru = deepGRU(input_dim=input_dim, hidden_dim=hidden_dim,num_layers=n_layers)
+    deep_gru = PyGRU(input_dim=input_dim, hidden_dim=hidden_dim,num_layers=n_layers)
     x = torch.randn(5, 3, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10
     output, H = deep_gru(x)
     print("Output shape:", output.shape)  # Expected: (5, 3, 20)

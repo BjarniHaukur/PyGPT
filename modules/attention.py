@@ -6,15 +6,12 @@ import math
 
    
 class AdditiveAttention(nn.Module):  
-    
     def __init__(self, num_hiddens, dropout, **kwargs):
         super(AdditiveAttention, self).__init__(**kwargs)
         self.W_k = nn.LazyLinear(num_hiddens, bias=False)
         self.W_q = nn.LazyLinear(num_hiddens, bias=False)
         self.w_v = nn.LazyLinear(1, bias=False)
-        self.dropout = nn.Dropout(dropout)
-
-  
+        self.dropout = nn.Dropout(dropout)  
 
     def forward(self, queries, keys, values):
         queries, keys = self.W_q(queries), self.W_k(keys)
@@ -27,7 +24,6 @@ class AdditiveAttention(nn.Module):
         return torch.bmm(self.dropout(self.attention_weights), values)
 
 class DotProductAttention(nn.Module):  
-    
     def __init__(self, dropout):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
@@ -35,7 +31,6 @@ class DotProductAttention(nn.Module):
     # Shape of queries: (batch_size, no. of queries, d)
     # Shape of keys: (batch_size, no. of key-value pairs, d)
     # Shape of values: (batch_size, no. of key-value pairs, value dimension)
-   
     def forward(self, queries, keys, values):
         d = queries.shape[-1]
         # Swap the last two dimensions of keys with keys.transpose(1, 2)
@@ -45,7 +40,6 @@ class DotProductAttention(nn.Module):
 
 
 class MultiHeadAttention(nn.Module): 
-    """Multi-head attention."""
     def __init__(self, num_hiddens, num_heads, dropout, bias=False, **kwargs):
         super().__init__()
         self.num_heads = num_heads
