@@ -100,10 +100,10 @@ class PyLSTM(nn.Module):
                 
                 h_t[layer] = o_t * torch.tanh(c_t[layer])
 
-            output.append(h_t[-1].clone())
+            output.append(h_t[-1].clone().detach())
 
-            h_t_minus_1 = h_t.clone()
-            c_t_minus_1 = c_t.clone()
+            h_t_minus_1 = h_t.clone().detach()
+            c_t_minus_1 = c_t.clone().detach()
 
         output = torch.stack(output, dim=1)
         return output, (h_t, c_t)
