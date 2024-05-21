@@ -67,10 +67,10 @@ def main(args):
         config={
             "learning_rate": args.lr,
             "epochs": args.epochs,
-            "architecture": model.__class__.__name__,
             "n_training_examples": len(train_ds),
             "n_validation_examples": len(val_ds),
-            "parameter_count": sum([p.numel() for p in model.parameters() if p.requires_grad])
+            "parameter_count": sum([p.numel() for p in model.parameters() if p.requires_grad]),
+            **config_dict
         },
         group=config.wandb_group
     )

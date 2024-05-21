@@ -42,7 +42,7 @@ class BPETokenizer:
         for c in sorted(set(text)): self.chr_to_ids[c] = len(self.chr_to_ids)
         self.ids_to_chr = {i:c for c,i in self.chr_to_ids.items()}
         
-    def __len__(self): return len(self.chr_to_ids) 
+    def __len__(self): return len(self.ids_to_chr) 
     def __getitem__(self, idx:int): return self.ids_to_chr[idx]
 
     def save(self, filename: str):
@@ -145,13 +145,25 @@ def html_color(rgb:tuple[int, int, int]) -> str:
 
 if __name__ == "__main__":
     import random
+    import argparse
+    
     random.seed(1337) # do not change
+    
+    parser = argparse.ArgumentParser(description="Fit a Byte-Pair Encoding tokenizer")
+    parser.add_argument("--num_train_files", type=int, default=100)
+    parser.add_argument("--iterations", type=int, default=100)
+    args = parser.parse_args()
 
-    # We use ISO-8859-1 instead of UTF-8 because it encodes each character as a single byte. In contrast, UTF-8’s variable-length encoding significantly increase the vocabulary size.
+
     train_files = open("data/PY150K/python100k_train.txt", "r", encoding="utf-8").read().split("\n")[:-1] # remove the last empty line
-    train_texts = [open("data/PY150K/" + path, encoding="iso-8859-1").read() for path in train_files]
+    # We use ISO-8859-1 instead of UTF-8 because it encodes each character as a single byte.
+    # In contrast, UTF-8’s variable-length encoding significantly increase the vocabulary size.
+    train_texts = [
+        open("data/PY150K/" + path, encoding="iso-8859-1").read()
+        for path in random.sample(train_files, args.num_train_files)
+    ]
 
     # Our starting vocabulary size is around 130, tokens which do not appear here are all considered <unk>
-    tok = BPETokenizer.fit("".join(random.sample(train_texts, 100)), 100) # after fitting we should have 130 + number_of_iterations tokens
+    tok = BPETokenizer.fit("".join(train_texts), args.iterations) # after fitting we should have 130 + number_of_iterations tokens
     # tok = BPETokenizer.load("py150k")
     tok.save("my_tokenizer")
