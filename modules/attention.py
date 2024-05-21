@@ -30,10 +30,12 @@ class DotProductAttention(nn.Module):
     # Shape of queries: (batch_size, no. of queries, d)
     # Shape of keys: (batch_size, no. of key-value pairs, d)
     # Shape of values: (batch_size, no. of key-value pairs, value dimension)
-    def forward(self, queries, keys, values):
+    def forward(self, queries, keys, values, attn_mask=None):
         d = queries.shape[-1]
         # Swap the last two dimensions of keys with keys.transpose(1, 2)
         scores = torch.bmm(queries, keys.transpose(1, 2)) / math.sqrt(d)
+        if attn_mask is not None:
+            scores = scores.masked_fill(attn_mask, -float('inf'))
         self.attention_weights =nn.functional.softmax(scores, dim=-1)
         return torch.bmm(self.dropout(self.attention_weights), values)
 
@@ -64,23 +66,22 @@ class MultiheadAttention(nn.Module):
         X = X.permute(0, 2, 1, 3)
         return X.reshape(X.shape[0], X.shape[1], -1)
 
-    def forward(self, queries, keys, values, valid_lens):
+    def forward(self, queries, keys, values):
         # Shape of queries, keys, or values:
         # (batch_size, no. of queries or key-value pairs, num_hiddens)
       
         # After transposing, shape of output queries, keys, or values:
         # (batch_size * num_heads, no. of queries or key-value pairs,num_hiddens / num_heads)
-        
+        B = queries.shape[0]
+        L = queries.shape[1]
+        S = keys.shape[1]
         queries = self.transpose_qkv(self.W_q(queries))
         keys = self.transpose_qkv(self.W_k(keys))
         values = self.transpose_qkv(self.W_v(values))
-        if valid_lens is not None:
-            # On axis 0, copy the first item (scalar or vector) for num_heads
-            # times, then copy the next item, and so on
-            valid_lens = torch.repeat_interleave(
-                valid_lens, repeats=self.num_heads, dim=0)
         
-        output = self.attention(queries, keys, values) # Shape of output: (batch_size * num_heads, no. of queries, num_hiddens / num_heads)
+        attn_mask = ~torch.tril(torch.ones((self.num_heads*B, L, S), device=queries.device)).bool()
+        
+        output = self.attention(queries, keys, values, attn_mask) # Shape of output: (batch_size * num_heads, no. of queries, num_hiddens / num_heads)
         
         output_concat = self.transpose_output(output)# Shape of output_concat: (batch_size, no. of queries, num_hiddens)
 
