@@ -12,7 +12,10 @@ from torch.utils.data import Dataset
 class Py150kDataset(Dataset):
     """ Reads and tokenizes each file in the PY150k dataset. """
     def __init__(self, split:Literal["train","eval"], tokenizer_name:str):
-        self.files = open("data/PY150k/python" + ("100k_train.txt" if split=="train" else "50k_eval.txt"), "r", encoding='utf-8').read().split("\n")[:-1] # last is empty line
+        self.files = open(
+            "data/PY150k/python" + ("100k_train.txt" if split=="train" else "50k_eval.txt"),
+            "r", encoding='utf-8'
+        ).read().split("\n")[:-1] # last is empty line
         self.tokenizer = BPETokenizer.load(tokenizer_name)
 
     @lru_cache() # creates a dictionary behind the scenes which maps idx to the data, i.e. only tokenize once
@@ -23,11 +26,13 @@ class Py150kDataset(Dataset):
     def __len__(self):
         return len(self.files)
     
-    
 class MemmapDataset(Dataset):
     """ Reads tokens from a memmap file. """
     def __init__(self, split:Literal["train","eval"], tokenizer_name:str, num_chars:int=4096):
-        self.memmap = np.memmap("data/PY150k/" + ("train.dat" if split=="train" else "eval.dat"), dtype="uint8", mode="r")
+        self.memmap = np.memmap(
+            "data/PY150k/" + ("train.dat" if split=="train" else "eval.dat"),
+            dtype="uint8", mode="r"
+        )
         self.tokenizer = BPETokenizer.load(tokenizer_name)
         self.num_chars = num_chars
     
