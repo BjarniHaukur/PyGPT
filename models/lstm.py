@@ -21,7 +21,7 @@ class PyLSTM(nn.Module):
     
     @torch.no_grad()
     def generate(self, max_len=1000, starting_tokens:list[int]=None,  nucleus_threshold:float=None, temperature:float=None)->str:
-        """ Generates a sequence of tokens """
+        """ Generates a sequence of tokens, added to starting_tokens """
         self.eval()
         device = next(self.parameters()).device
         xt = torch.tensor([[BOS_ID] + (starting_tokens or [])], device=device)
@@ -46,4 +46,5 @@ class PyLSTM(nn.Module):
             tokens.append(token)
 
         self.train()
+
         return tokens
