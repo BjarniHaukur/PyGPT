@@ -21,7 +21,6 @@ CHECKPOINT_PATH = Path("checkpoints/models")
 # Things that can be "quantified" are handled by the config, things like architecture changes should be different classes (reduces boilerplate a tone)
 # i.e. storing things like "prenorm" or "postnorm" in the config is nice but is effectively ignored by the __init__ 
 def create_from_configuration(config_dict):
-    print(config_dict)
     match config_dict["model_type"]:
         case "PyRNN":
             return PyRNN(**config_dict)
@@ -46,9 +45,7 @@ def main(args):
     print(f"Training on device: {DEVICE}")
 
     config = load_config(args.config)
-    print(config)
     config_dict = config.__dict__ # easy to use
-    print(config_dict)
 
     # I don"t think validation loss matters as much when training generative models, if we manage to overfit on a large dataset then we are golden
     train_ds = Py150kDataset("train", config.tokenizer_name)
