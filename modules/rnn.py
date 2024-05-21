@@ -36,12 +36,12 @@ class PyRNN(nn.Module):
         for t in range(L):
             h_t_minus_1 = h_t.clone()
             for layer in range(self.n_layers):
-                x_layer = x[:, t] if layer == 0 else h_t[layer - 1] # first layers input is x, other layers receive the previous h_
+                x_layer = x[:, t] if layer == 0 else h_t[layer - 1].clone() # first layers input is x, other layers receive the previous h_
                 h_t[layer] = torch.tanh(
                     x_layer @ self.WI[layer].T + self.BI[layer] +
                     h_t_minus_1[layer] @ self.WH[layer].T + self.BH[layer]
                 ) # don't know why but pytorch's implementation has two learnable biases... would assume that they could be combined into one
-            output.append(h_t[-1].clone().detach())
+            output.append(h_t[-1].clone())
 
         output = torch.stack(output, dim=1)
         return output, h_t
