@@ -129,7 +129,6 @@ def main(args):
                 val_tqdm.set_postfix({"val_loss": f"{val_loss:.3f}"})
 
         wandb.log({"avg_val_loss": total_val_loss / len(val_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
-        model.train()
 
         torch.save({
             'epoch': epoch + 1,
