@@ -20,5 +20,7 @@ wandb/
 # data
 data/*
 
+
 # ignore pytorch models
 **/*.ckpt
+**/*.pt

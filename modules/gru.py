@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 class PyGRUCell(nn.Module):
     def __init__(self, input_dim:int, hidden_dim:int):
-        super(PyGRUCell,self).__init__()
+        super(PyGRUCell, self).__init__()
         self.input_dim, self.hidden_dim = input_dim, hidden_dim
 
         init_weight_matrix = lambda *shape: nn.Parameter(torch.empty(*shape) )
@@ -62,8 +62,6 @@ if __name__ == "__main__":
     hidden_dim = 20
     n_layers = 1
     def copy_weights_to_torch_gru(py_gru, torch_gru):
-
-       
         # Copying weights for the input-hidden connections
         getattr(torch_gru, 'weight_ih_l' + str(0)).data.copy_(torch.cat([
             getattr(py_gru, 'W_xr').T.data,
@@ -85,16 +83,12 @@ if __name__ == "__main__":
             getattr(py_gru, 'b_h').data
         ],dim=0))
             
-            # No hidden-hidden bias in PyTorch's GRU, so just copy the biases for the input-hidden connections
+        # No hidden-hidden bias in PyTorch's GRU, so just copy the biases for the input-hidden connections
         getattr(torch_gru, 'bias_hh_l' + str(0)).data.copy_(torch.zeros_like(torch.cat([
             getattr(py_gru, 'b_r').data,
             getattr(py_gru, 'b_z').data,
             getattr(py_gru, 'b_h').data
         ])))
-
-
-           
-
 
     py_gru = PyGRUCell(input_dim=input_dim, hidden_dim=hidden_dim)
     x = torch.randn(5, 3, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10

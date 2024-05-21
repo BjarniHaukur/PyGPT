@@ -1,0 +1,7 @@
+model_type: PyLSTM
+wandb_group: LSTMs
+wandb_project: PyGPT
+tokenizer_name: py150k
+vocab_size: 376
+hidden_size: 256
+num_layers: 1

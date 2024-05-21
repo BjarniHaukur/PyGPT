@@ -1,5 +1,4 @@
 import torch
-from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 import math 
@@ -8,9 +7,9 @@ import math
 class AdditiveAttention(nn.Module):  
     def __init__(self, num_hiddens, dropout, **kwargs):
         super(AdditiveAttention, self).__init__(**kwargs)
-        self.W_k = nn.LazyLinear(num_hiddens, bias=False)
-        self.W_q = nn.LazyLinear(num_hiddens, bias=False)
-        self.w_v = nn.LazyLinear(1, bias=False)
+        self.W_k = nn.Linear(num_hiddens, num_hiddens, bias=False)
+        self.W_q = nn.Linear(num_hiddens, num_hiddens, bias=False)
+        self.w_v = nn.Linear(num_hiddens, 1, bias=False)
         self.dropout = nn.Dropout(dropout)  
 
     def forward(self, queries, keys, values):
@@ -39,15 +38,15 @@ class DotProductAttention(nn.Module):
         return torch.bmm(self.dropout(self.attention_weights), values)
 
 
-class MultiHeadAttention(nn.Module): 
+class MultiheadAttention(nn.Module): 
     def __init__(self, num_hiddens, num_heads, dropout, bias=False, **kwargs):
         super().__init__()
         self.num_heads = num_heads
         self.attention = DotProductAttention(dropout)
-        self.W_q = nn.LazyLinear(num_hiddens, bias=bias)
-        self.W_k = nn.LazyLinear(num_hiddens, bias=bias)
-        self.W_v = nn.LazyLinear(num_hiddens, bias=bias)
-        self.W_o = nn.LazyLinear(num_hiddens, bias=bias)
+        self.W_q = nn.Linear(num_hiddens, num_hiddens, bias=bias)
+        self.W_k = nn.Linear(num_hiddens, num_hiddens, bias=bias)
+        self.W_v = nn.Linear(num_hiddens, num_hiddens, bias=bias)
+        self.W_o = nn.Linear(num_hiddens, num_hiddens, bias=bias)
 
     def transpose_qkv(self, X):
         # for the purpose of paralleslising the computation of multiple heads 
@@ -86,3 +85,31 @@ class MultiHeadAttention(nn.Module):
         output_concat = self.transpose_output(output)# Shape of output_concat: (batch_size, no. of queries, num_hiddens)
 
         return self.W_o(output_concat)
+    
+    
+if __name__=="__main__":
+    import numpy as np
+    
+    batch_size = 32
+    seq_len = 256
+    embed_dim = 100
+    num_heads = 10
+        
+    def copy_from_torch(py_mha, torch_mha):
+        py_mha.W_q.weight.data.copy_(torch_mha.in_proj_weight[:embed_dim])
+        py_mha.W_k.weight.data.copy_(torch_mha.in_proj_weight[embed_dim:2*embed_dim])
+        py_mha.W_v.weight.data.copy_(torch_mha.in_proj_weight[2*embed_dim:])
+        py_mha.W_o.weight.data.copy_(torch_mha.out_proj.weight.T)
+        torch_mha.out_proj.bias.data.copy_(torch.zeros_like(torch_mha.out_proj.bias))
+    
+    torch_mha = nn.MultiheadAttention(embed_dim, num_heads)
+    py_mha = MultiheadAttention(embed_dim, num_heads, 0.0)
+    copy_from_torch(py_mha, torch_mha)
+
+    
+    x = torch.randn(batch_size, seq_len, embed_dim)
+    torch_attn_out, torch_attn_weights = torch_mha(x, x, x)
+    py_attn_out = py_mha(x, x, x)
+    
+    np.testing.assert_allclose(py_attn_out.detach().numpy(), torch_attn_out.detach().numpy(), atol=1e-5)
+    

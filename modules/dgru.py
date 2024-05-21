@@ -17,7 +17,7 @@ class PyGRU(nn.Module):
         if h0 is None: h0 = [None] * self.num_layers
         for i in range(self.num_layers):
             outputs, h0[i] = self.grus[i](outputs, h0[i])
-        return outputs, torch.stack(h0,0)   # outputs will be like (batch, length, hidden dims), hidden state will be like (layers, batch, hidden dims)
+        return outputs, torch.stack(h0, 0)   # outputs will be like (batch, length, hidden dims), hidden state will be like (layers, batch, hidden dims)
     
 if __name__ == "__main__":
     import numpy as np
@@ -26,8 +26,7 @@ if __name__ == "__main__":
     n_layers = 3
     def copy_weights_to_torch_gru(deep_gru, torch_gru):
         for i in range(deep_gru.num_layers):
-       
-        # Copying weights for the input-hidden connections
+            # Copying weights for the input-hidden connections
             getattr(torch_gru, 'weight_ih_l' + str(i)).data.copy_(torch.cat([
                 getattr(deep_gru.grus[i], 'W_xr').T.data,
                 getattr(deep_gru.grus[i], 'W_xz').T.data,
@@ -55,10 +54,6 @@ if __name__ == "__main__":
                 getattr(deep_gru.grus[i], 'b_h').data
             ])))
 
-
-           
-
-
     deep_gru = PyGRU(input_dim=input_dim, hidden_dim=hidden_dim,num_layers=n_layers)
     x = torch.randn(5, 3, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10
     output, H = deep_gru(x)
@@ -71,7 +66,6 @@ if __name__ == "__main__":
     x = torch.randn(5, 3, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10
     out_py_gru, h_py_gru = deep_gru(x)
     out_torch_gru, h_torch_gru = torch_gru(x)
-   
 
     np.testing.assert_allclose(out_py_gru.detach().numpy(), out_torch_gru.detach().numpy(), rtol=1e-4,atol=1e-5)
     np.testing.assert_allclose(h_py_gru.detach().numpy(), h_torch_gru.detach().numpy(), rtol=1e-4,atol=1e-5)
