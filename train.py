@@ -21,6 +21,7 @@ CHECKPOINT_PATH = Path("checkpoints/models")
 # Things that can be "quantified" are handled by the config, things like architecture changes should be different classes (reduces boilerplate a tone)
 # i.e. storing things like "prenorm" or "postnorm" in the config is nice but is effectively ignored by the __init__ 
 def create_from_configuration(config_dict):
+    print(config_dict)
     match config_dict["model_type"]:
         case "PyRNN":
             return PyRNN(**config_dict)
@@ -29,7 +30,7 @@ def create_from_configuration(config_dict):
         case "PyTransformer":
             return PyTransformer(**config_dict)
         case _:
-            raise ValueError(f"Invalid model_type, got {config_dict["model_type"]}")
+            raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
 
 
 def collate_fn(batch:list[torch.Tensor], max_len:int=2048):
@@ -45,7 +46,9 @@ def main(args):
     print(f"Training on device: {DEVICE}")
 
     config = load_config(args.config)
+    print(config)
     config_dict = config.__dict__ # easy to use
+    print(config_dict)
 
     # I don"t think validation loss matters as much when training generative models, if we manage to overfit on a large dataset then we are golden
     train_ds = Py150kDataset("train", config.tokenizer_name)
@@ -99,7 +102,7 @@ def main(args):
 
             train_loss = loss.detach().cpu().numpy()
             total_train_loss += train_loss
-            train_tqdm.set_postfix({"loss": f"{train_loss}:.3f"})
+            train_tqdm.set_postfix({"loss": f"{train_loss:.3f}"})
 
             if i % args.log_interval == 0:
                 wandb.log({"train_loss": train_loss}, step=epoch * len(train_dl) + i)
@@ -123,7 +126,7 @@ def main(args):
                 loss = criterion(y_hat.reshape(-1, config.vocab_size), y_val.reshape(-1))
                 val_loss = loss.detach().cpu().numpy()
                 total_val_loss += val_loss
-                val_tqdm.set_postfix({"val_loss": f"{val_loss}:.3f"})
+                val_tqdm.set_postfix({"val_loss": f"{val_loss:.3f}"})
 
         wandb.log({"avg_val_loss": total_val_loss / len(val_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
         model.train()

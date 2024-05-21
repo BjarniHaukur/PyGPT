@@ -23,7 +23,7 @@ def load_config(file_name: str) -> 'ModelConfig':
         case "PyTransformer":
             return PyTransformerConfig(**config_dict)
         case _:
-            raise ValueError(f"Invalid model_type, got {config_dict["model_type"]}")
+            raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
 
 @dataclass
 class ModelConfig(ABC):
