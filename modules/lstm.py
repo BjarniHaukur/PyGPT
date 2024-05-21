@@ -61,20 +61,20 @@ class PyLSTM(nn.Module):
         if h_0 is None:
             h_0 = torch.zeros(self.n_layers, B, self.hidden_dim, device=x.device)
 
-        h_t_minus_1 = h_0
-        h_t = h_0
+        h_t_minus_1 = h_0.clone()
+        h_t = h_0.clone()
         
         # initialize memory cell
         if c_0 is None:
             c_0 = torch.zeros(self.n_layers, B, self.hidden_dim, device=x.device)
 
-        c_t_minus_1 = c_0
-        c_t = c_0
+        c_t_minus_1 = c_0.clone()
+        c_t = c_0.clone()
 
         output = []
         for t in range(L):
             for layer in range(self.n_layers):
-                x_layer = x[:, t] if layer == 0 else h_t[layer - 1] # first layers input is x, other layers receive the previous h_t
+                x_layer = x[:, t] if layer == 0 else h_t[layer - 1].clone() # first layers input is x, other layers receive the previous h_t
                 
                 i_t = torch.sigmoid(
                     torch.mm(x_layer, self.W_ii[layer]) + self.B_ii[layer] +
@@ -100,10 +100,10 @@ class PyLSTM(nn.Module):
                 
                 h_t[layer] = o_t * torch.tanh(c_t[layer])
 
-            output.append(h_t[-1].clone().detach())
+            output.append(h_t[-1].clone())
 
-            h_t_minus_1 = h_t.clone().detach()
-            c_t_minus_1 = c_t.clone().detach()
+            h_t_minus_1 = h_t.clone()
+            c_t_minus_1 = c_t.clone()
 
         output = torch.stack(output, dim=1)
         return output, (h_t, c_t)

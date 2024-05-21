@@ -29,7 +29,7 @@ def create_from_configuration(config_dict):
         case "PyTransformer":
             return PyTransformer(**config_dict)
         case _:
-            raise ValueError(f"Invalid model_type, got {config_dict["model_type"]}")
+            raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
 
 
 def collate_fn(batch:list[torch.Tensor], max_len:int=2048):
@@ -99,7 +99,7 @@ def main(args):
 
             train_loss = loss.detach().cpu().numpy()
             total_train_loss += train_loss
-            train_tqdm.set_postfix({"loss": f"{train_loss}:.3f"})
+            train_tqdm.set_postfix({"loss": f"{train_loss:.3f}"})
 
             if i % args.log_interval == 0:
                 wandb.log({"train_loss": train_loss}, step=epoch * len(train_dl) + i)
@@ -123,10 +123,9 @@ def main(args):
                 loss = criterion(y_hat.reshape(-1, config.vocab_size), y_val.reshape(-1))
                 val_loss = loss.detach().cpu().numpy()
                 total_val_loss += val_loss
-                val_tqdm.set_postfix({"val_loss": f"{val_loss}:.3f"})
+                val_tqdm.set_postfix({"val_loss": f"{val_loss:.3f}"})
 
         wandb.log({"avg_val_loss": total_val_loss / len(val_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
-        model.train()
 
         torch.save({
             'epoch': epoch + 1,

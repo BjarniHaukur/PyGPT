@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 # does not support bidirectionality since it can't be used to generate code
 class PyRNN(nn.Module):
-    def __init__(self, input_dim:int, hidden_dim:int, n_layers:int):
+    def __init__(self, input_dim:int, hidden_dim:int, n_layers:int=1):
         super(PyRNN, self).__init__()
         self.input_dim, self.hidden_dim, self.n_layers = input_dim, hidden_dim, n_layers
 

@@ -35,26 +35,29 @@ class PyGRUCell(nn.Module):
 
     def forward(self, x:Tensor, h_0:Tensor=None)->tuple[Tensor, Tensor]:
         B, L, _ = x.shape # batch, length, input dims
+        
         if h_0 is None:
             h_0 = torch.zeros(B, self.hidden_dim, device=x.device) # batch, hidden dims
+
+        h_t = h_0.clone()
+        
         outputs = []
-        h_t = h_0
         for t in range(L):
             x_t = x[:,t]
+            h_t_minus_1 = h_t.clone()
             z_t = torch.sigmoid(torch.matmul(x_t, self.W_xz) +  # update gate
                     torch.matmul(h_t, self.W_hz) + self.b_z)
             r_t = torch.sigmoid(torch.matmul(x_t, self.W_xr) + # reset gate
                     torch.matmul(h_t, self.W_hr) + self.b_r)
             h_candidate = torch.tanh(torch.matmul(x_t, self.W_xh) +
-                        torch.matmul(r_t * h_t, self.W_hh) + self.b_h)
-            h_t = z_t * h_t + (1 - z_t) * h_candidate 
-            outputs.append(h_t)
-        outputs=torch.stack(outputs,dim=1)
-        return outputs,h_t # outputs will be like (batch, length, hidden dims), hidden state will be like (batch, hidden dims)
+                        r_t*(torch.matmul(h_t, self.W_hh) + self.b_h))
+            h_t = z_t * h_t_minus_1 + (1 - z_t) * h_candidate 
+            outputs.append(h_t.clone())
+        
+        outputs = torch.stack(outputs, dim=1)
+        
+        return outputs, h_t # outputs will be like (batch, length, hidden dims), hidden state will be like (batch, hidden dims)
     
-
-
-
 
 if __name__ == "__main__":
     import numpy as np
@@ -91,21 +94,18 @@ if __name__ == "__main__":
         ])))
 
     py_gru = PyGRUCell(input_dim=input_dim, hidden_dim=hidden_dim)
-    x = torch.randn(5, 3, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10
-    output, h_n = py_gru(x)
-    print("Output shape:", output.shape)  # Expected: (5, 3, 20)
-    print("Hidden state shape:", h_n.shape)  # Expected: (5, 20)
-
     torch_gru = nn.GRU(input_dim, hidden_dim, n_layers, batch_first=True)
     copy_weights_to_torch_gru(py_gru, torch_gru)
 
     x = torch.randn(5, 3, input_dim)  # Batch size of 5, sequence length of 3, feature size of 10
-    out_py_gru, h_py_gru = py_gru(x)
-    out_torch_gru, h_torch_gru = torch_gru(x)
+    h0 = torch.zeros(n_layers, 5, hidden_dim)  # Initial hidden state
+    out_py_gru, h_py_gru = py_gru(x, h0[0].clone())
+    h_py_gru = h_py_gru.unsqueeze(0)
+    out_torch_gru, h_torch_gru = torch_gru(x, h0.clone())
    
 
-    np.testing.assert_allclose(out_py_gru.detach().numpy(), out_torch_gru.detach().numpy(), rtol=1e-4,atol=1e-5)
-    np.testing.assert_allclose(h_py_gru.detach().numpy(), h_torch_gru.detach().numpy(), rtol=1e-4,atol=1e-5)
+    np.testing.assert_allclose(out_py_gru.detach().numpy(), out_torch_gru.detach().numpy(), rtol=1e-4)
+    np.testing.assert_allclose(h_py_gru.detach().numpy(), h_torch_gru.detach().numpy(), rtol=1e-4)
 
     
         
