@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
+from modules import rnn, embedding
 
 class PyRNN(nn.Module):
     def __init__(self, vocab_size:int, hidden_size:int, num_layers:int, **kwargs):
         super(PyRNN, self).__init__()
         self.vocab_size, self.hidden_size = vocab_size, hidden_size
         
-        self.embed = nn.Embedding(vocab_size, hidden_size)
-        self.rnn = nn.RNN(hidden_size, hidden_size, num_layers=num_layers, batch_first=True)
+        self.embed = embedding.PyEmbedding(vocab_size, hidden_size)
+        self.rnn = rnn.PyRNN(hidden_size, hidden_size, num_layers)
         self.linear = nn.Linear(hidden_size, vocab_size)
         
     def forward(self, x, h=None):
