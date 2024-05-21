@@ -11,7 +11,7 @@ import wandb
 
 torch.random.manual_seed(1337)
 
-from utils.dataset import Py150kDataset
+from utils.dataset import MemmapDataset
 from utils.tokenizer import BOS_ID, EOS_ID, PAD_ID
 from config import load_config
 from models import PyRNN, PyLSTM, PyTransformer
@@ -49,8 +49,8 @@ def main(args):
     config_dict = config.__dict__ # easy to use
 
     # I don"t think validation loss matters as much when training generative models, if we manage to overfit on a large dataset then we are golden
-    train_ds = Py150kDataset("train", config.tokenizer_name)
-    val_ds = Py150kDataset("eval", config.tokenizer_name)
+    train_ds = MemmapDataset("train", config.tokenizer_name)
+    val_ds = MemmapDataset("eval", config.tokenizer_name)
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
     train_ds, _ = random_split(val_ds, [0.01, 0.99])
@@ -64,12 +64,12 @@ def main(args):
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     
     if args.continue_from:
+        print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")
         checkpoint = torch.load(CHECKPOINT_PATH / args.continue_from, map_location=DEVICE)
         model.load_state_dict(checkpoint['model_state_dict'])
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch']
         wandb.init(project=config.wandb_project, id=checkpoint['wandb_id'], resume="must")
-        print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")
+        start_epoch = checkpoint['epoch']
     else:
         wandb.init(
             project=config.wandb_project,

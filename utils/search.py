@@ -1,9 +1,10 @@
 import random
 
+from .tokenizer import BOS_ID, EOS_ID
+
 import torch
 import torch.nn.functional as F
 
-from .tokenizer import BOS_ID, EOS_ID
 
 def beam_search(model, beam_width:int=3, max_length:int=50, starting_tokens:list[int]=None)->list[int]:
     sequences = [[BOS_ID] + starting_tokens or []]
