@@ -42,6 +42,7 @@ def collate_fn(batch:list[torch.Tensor], max_len:int=2048):
 
 def main(args):
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    DEVICE = "mps" if torch.backends.mps.is_available() else DEVICE
     print(f"Training on device: {DEVICE}")
 
     config = load_config(args.config)
@@ -52,35 +53,46 @@ def main(args):
     val_ds = Py150kDataset("eval", config.tokenizer_name)
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
+    train_ds, _ = random_split(val_ds, [0.01, 0.99])
+    val_ds, _ = random_split(val_ds, [0.01, 0.99])
     
     collate = partial(collate_fn, max_len=config_dict.get("context_window", 2048))
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
     val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
 
-
     model = create_from_configuration(config_dict).to(DEVICE)
-    criterion = nn.CrossEntropyLoss(ignore_index=PAD_ID)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
-
-    wandb.init(
-        project=config.wandb_project,
-        config={
-            "learning_rate": args.lr,
-            "epochs": args.epochs,
-            "n_training_examples": len(train_ds),
-            "n_validation_examples": len(val_ds),
-            "parameter_count": sum([p.numel() for p in model.parameters() if p.requires_grad]),
-            **config_dict
-        },
-        group=config.wandb_group
-    )
+    
+    if args.continue_from:
+        checkpoint = torch.load(CHECKPOINT_PATH / args.continue_from, map_location=DEVICE)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optim.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch']
+        wandb.init(project=config.wandb_project, id=checkpoint['wandb_id'], resume="must")
+        print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")
+    else:
+        wandb.init(
+            project=config.wandb_project,
+            config={
+                "learning_rate": args.lr,
+                "epochs": args.epochs,
+                "n_training_examples": len(train_ds),
+                "n_validation_examples": len(val_ds),
+                "parameter_count": sum([p.numel() for p in model.parameters() if p.requires_grad]),
+                **config_dict
+            },
+            group=config.wandb_group
+        )
+        start_epoch = 0
+        
+    criterion = nn.CrossEntropyLoss(ignore_index=PAD_ID)
 
     model_path = CHECKPOINT_PATH / wandb.run.name
     model_path.mkdir(parents=True, exist_ok=True)
 
     model.train()
-    for epoch in range(args.epochs):
-        train_tqdm = tqdm(train_dl, desc=f"Epoch {epoch + 1}/{args.epochs} Training")
+    for epoch in range(start_epoch, start_epoch + args.epochs):
+        train_tqdm = tqdm(train_dl, desc=f"Epoch {epoch + 1}/{start_epoch + args.epochs} Training")
         total_train_loss = 0
 
         for i, batch in enumerate(train_tqdm):
@@ -107,11 +119,10 @@ def main(args):
 
         wandb.log({"avg_train_loss": total_train_loss / len(train_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
 
-        # Validation step
         model.eval()
         total_val_loss = 0
         with torch.no_grad():
-            val_tqdm = tqdm(val_dl, desc=f"Epoch {epoch + 1}/{args.epochs} Validation")
+            val_tqdm = tqdm(val_dl, desc=f"Epoch {epoch + 1}/{start_epoch + args.epochs} Validation")
             for val_batch in val_tqdm:
                 val_batch = val_batch.to(DEVICE)
                 x_val = val_batch[..., :-1]
@@ -132,6 +143,7 @@ def main(args):
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optim.state_dict(),
             'loss': total_train_loss / len(train_dl),
+            'wandb_id': wandb.run.id,
         }, model_path / f"epoch_{epoch + 1}.pt")
 
 

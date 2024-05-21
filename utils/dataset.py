@@ -45,6 +45,7 @@ class MemmapDataset(Dataset):
 
 if __name__ == "__main__":
     # This script is used to create the memmap files for the MemmapDataset
+    # inspired by Karpathy's nanoGPT
     import numpy as np
     
     files_train = open("data/PY150K/python100k_train.txt", "r").read().split("\n")[:-1] # last is empty line
