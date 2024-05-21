@@ -64,7 +64,7 @@ class MultiheadAttention(nn.Module):
         X = X.permute(0, 2, 1, 3)
         return X.reshape(X.shape[0], X.shape[1], -1)
 
-    def forward(self, queries, keys, values):
+    def forward(self, queries, keys, values, valid_lens):
         # Shape of queries, keys, or values:
         # (batch_size, no. of queries or key-value pairs, num_hiddens)
       
@@ -74,6 +74,11 @@ class MultiheadAttention(nn.Module):
         queries = self.transpose_qkv(self.W_q(queries))
         keys = self.transpose_qkv(self.W_k(keys))
         values = self.transpose_qkv(self.W_v(values))
+        if valid_lens is not None:
+            # On axis 0, copy the first item (scalar or vector) for num_heads
+            # times, then copy the next item, and so on
+            valid_lens = torch.repeat_interleave(
+                valid_lens, repeats=self.num_heads, dim=0)
         
         output = self.attention(queries, keys, values) # Shape of output: (batch_size * num_heads, no. of queries, num_hiddens / num_heads)
         
