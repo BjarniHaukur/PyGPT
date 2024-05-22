@@ -7,6 +7,7 @@ from .tokenizer import BPETokenizer
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 DATA_PATH = Path("data/py150k")
 
@@ -57,10 +58,10 @@ if __name__ == "__main__":
     # inspired by Karpathy's nanoGPT
     
     files_train = open(DATA_PATH / "python100k_train.txt", "r").read().split("\n")[:-1] # last is empty line
-    texts_train = [open(DATA_PATH / x, "r", encoding="iso-8859-1").read() for x in files_train]
+    texts_train = [open(DATA_PATH / x, "r", encoding="iso-8859-1").read() for x in tqdm(files_train)]
         
     files_eval = open(DATA_PATH / "python50k_eval.txt", "r").read().split("\n")[:-1] # last is empty line
-    texts_eval = [open(DATA_PATH / x, "r", encoding="iso-8859-1").read() for x in files_eval]
+    texts_eval = [open(DATA_PATH / x, "r", encoding="iso-8859-1").read() for x in tqdm(files_eval)]
 
     chrs_train = "".join(texts_train).encode('iso-8859-1')
     chrs_eval = "".join(texts_eval).encode('iso-8859-1')

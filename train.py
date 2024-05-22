@@ -43,8 +43,6 @@ def main(args):
     val_ds = MemmapDataset("eval", config.tokenizer_name)
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
-    train_ds, _ = random_split(val_ds, [0.01, 0.99])
-    val_ds, _ = random_split(val_ds, [0.01, 0.99])
     
     collate = partial(collate_fn, max_len=config_dict.get("context_window", args.seq_len))
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
