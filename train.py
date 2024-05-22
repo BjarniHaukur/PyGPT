@@ -103,7 +103,7 @@ def main(args):
             train_tqdm.set_postfix({"loss": f"{train_loss:.3f}"})
 
             if i % args.log_interval == 0:
-                wandb.log({"train_loss": train_loss}, step=epoch * len(train_dl) + i, commit=gsTrue)
+                wandb.log({"train_loss": train_loss}, step=epoch * len(train_dl) + i, commit=True)
 
 
         wandb.log({"avg_train_loss": total_train_loss / len(train_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
