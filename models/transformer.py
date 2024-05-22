@@ -1,9 +1,11 @@
+from .base import PyGenerator
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
-class PyTransformer(nn.Module):
+class PyTransformer(PyGenerator):
     def __init__(self,
             vocab_size:int = 376,
             d_model:int = 512,

@@ -13,7 +13,7 @@ torch.random.manual_seed(1337)
 
 from utils.dataset import MemmapDataset
 from utils.tokenizer import BOS_ID, EOS_ID, PAD_ID
-from models import PyRNN, PyLSTM, PyTransformer, load_config, 
+from models import PyRNN, PyLSTM, PyTransformer, load_config, model_from_config
 
 CHECKPOINT_PATH = Path("checkpoints/models")
 

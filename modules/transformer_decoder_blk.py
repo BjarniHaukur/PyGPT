@@ -37,9 +37,9 @@ class MultiHeadAttention(nn.Module):
 
 
 
-class TransformerDecoderBlock(nn.Module):
+class PyTransformerDecoderBlock(nn.Module):
     def __init__(self, num_hiddens, ffn_num_hiddens, num_heads, dropout, i):
-        super(TransformerDecoderBlock, self).__init__()
+        super(PyTransformerDecoderBlock, self).__init__()
         self.i = i # BLOCK NUMBER 
         self.attention1 = MultiHeadAttention(num_hiddens, num_heads, dropout)
         self.addnorm1 = AddNorm(num_hiddens, dropout)
@@ -86,8 +86,8 @@ if __name__ == "__main__":
     # enc_mask = (enc_valid_lens.unsqueeze(1) >= torch.arange(seq_len, device=enc_valid_lens.device)).bool()
     state = [None] * num_layers
 
-    # Initialize custom TransformerDecoderBlock
-    custom_decoder_block = TransformerDecoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, 0)
+    # Initialize custom PyTransformerDecoderBlock
+    custom_decoder_block = PyTransformerDecoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, 0)
     custom_output, custom_state = custom_decoder_block(X, state)
 
     # Initialize PyTorch's TransformerDecoderLayer
@@ -127,5 +127,5 @@ if __name__ == "__main__":
 
     # Compare the outputs
     np.testing.assert_allclose(custom_output.detach().numpy(), pytorch_output.detach().numpy(), rtol=1e-4)
-    print("The custom TransformerDecoderBlock output matches with PyTorch's TransformerDecoderLayer output.")
+    print("The custom PyTransformerDecoderBlock output matches with PyTorch's TransformerDecoderLayer output.")
 

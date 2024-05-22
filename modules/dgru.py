@@ -1,8 +1,8 @@
+from .gru import PyGRUCell
+
 import torch
-from torch import Tensor
 import torch.nn as nn
-import torch.nn.functional as F
-from gru import PyGRUCell
+from torch import Tensor
 
 class PyGRU(nn.Module):
     def __init__(self, input_dim:int, hidden_dim:int, num_layers:int):

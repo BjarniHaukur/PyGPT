@@ -2,6 +2,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+import torch
 import torch.nn as nn
 
 CONFIG_PATH = Path("configs/")
@@ -43,5 +44,5 @@ class PyTransformerConfig(ModelConfig):
     
 class PyGenerator(ABC, nn.Module):
     @abstractmethod
-    def generate(self, batch_size:int, max_len:int, nucleus_threshold:float, starting_tokens:list[int]=None):
+    def generate(self, batch_size:int, max_len:int, nucleus_threshold:float=0.9, starting_tokens:torch.Tensor=None):
         pass

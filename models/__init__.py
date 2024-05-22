@@ -15,26 +15,24 @@ def load_config(file_name: str) -> 'ModelConfig':
     with open(CONFIG_PATH / file_name, 'r') as file:
         config_dict = yaml.safe_load(file)
 
-    match config_dict["model_type"]:
-        case "PyRNN":
-            return PyRNNConfig(**config_dict)
-        case "PyLSTM":
+    if config_dict["model_type"] == "PyRNN":
+        return PyRNNConfig(**config_dict)
+    elif config_dict["model_type"] == "PyLSTM":
             return PyLSTMConfig(**config_dict)
-        case "PyTransformer":
+    elif config_dict["model_type"] == "PyTransformer":
             return PyTransformerConfig(**config_dict)
-        case _:
-            raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
+    else:
+        raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
         
         
 # Things that can be "quantified" are handled by the config, things like architecture changes should be different classes (reduces boilerplate a tone)
 # i.e. storing things like "prenorm" or "postnorm" in the config is nice but is effectively ignored by the __init__ 
 def model_from_config(config: "ModelConfig")-> "PyGenerator":
-    match config.model_type:
-        case "PyRNN":
-            return PyRNN(**config.__dict__)
-        case "PyLSTM":
-            return PyLSTM(**config.__dict__)
-        case "PyTransformer":
-            return PyTransformer(**config.__dict__)
-        case _:
-            raise ValueError(f"Invalid model_type, got {config.model_type}")
+    if config.model_type == "PyRNN":
+        return PyRNN(**config.__dict__)
+    elif config.model_type == "PyLSTM":
+        return PyLSTM(**config.__dict__)
+    elif config.model_type ==  "PyTransformer":
+        return PyTransformer(**config.__dict__)
+    else:
+        raise ValueError(f"Invalid model_type, got {config.model_type}")

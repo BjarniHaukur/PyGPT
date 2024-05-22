@@ -1,12 +1,12 @@
-import torch
-import torch.nn as nn
-from modules import rnn, embedding
-
+from .base import PyGenerator
+from modules import embedding, rnn
 from utils.sample import nucleus_sample
 from utils.tokenizer import BOS_ID, EOS_ID, PAD_ID
 
+import torch
+import torch.nn as nn
 
-class PyRNN(nn.Module):
+class PyRNN(PyGenerator):
     def __init__(self, vocab_size:int, hidden_size:int, num_layers:int, **kwargs):
         super(PyRNN, self).__init__()
         self.vocab_size, self.hidden_size = vocab_size, hidden_size
@@ -26,7 +26,7 @@ class PyRNN(nn.Module):
             self,
             batch_size:int,
             max_len:int=1000,
-            nucleus_threshold:float = None,
+            nucleus_threshold:float=0.9,
             starting_tokens:torch.Tensor=None
         ) -> list[list[int]]:
         """ Generates a batch of tokens, returning a list of potentially variable length sequences """
@@ -42,15 +42,15 @@ class PyRNN(nn.Module):
 
         tokens = []
         for _ in range(max_len):
-            xt = self.embed(xt)
-            xt, ht = self.rnn(xt, ht)
-            xt = self.linear(xt)
+            xt, ht = self.forward(xt, ht)
             xt = nucleus_sample(xt[:, -1, :], nucleus_threshold)
             
             tokens.append(xt.tolist())
             xt = xt.unsqueeze(1)
         
         self.train()
-        return [x[:x.index(EOS_ID) + 1] for x in tokens]
+        tokens = torch.tensor(tokens).T.tolist() # (max_len, batch_size) -> (batch_size, max_len)
+        return [seq[:seq.index(EOS_ID) + 1] if EOS_ID in seq else seq for seq in tokens] # truncate at EOS token
+
 
 

@@ -40,7 +40,7 @@ class DotProductAttention(nn.Module):
         return torch.bmm(self.dropout(self.attention_weights), values)
 
 
-class MultiheadAttention(nn.Module): 
+class PyMultiheadAttention(nn.Module): 
     def __init__(self, num_hiddens, num_heads, dropout, bias=False, **kwargs):
         super().__init__()
         self.num_heads = num_heads
@@ -103,8 +103,8 @@ if __name__=="__main__":
         py_mha.W_o.weight.data.copy_(torch_mha.out_proj.weight.T)
         torch_mha.out_proj.bias.data.copy_(torch.zeros_like(torch_mha.out_proj.bias))
     
-    torch_mha = nn.MultiheadAttention(embed_dim, num_heads)
-    py_mha = MultiheadAttention(embed_dim, num_heads, 0.0)
+    torch_mha = nn.PyMultiheadAttention(embed_dim, num_heads)
+    py_mha = PyMultiheadAttention(embed_dim, num_heads, 0.0)
     copy_from_torch(py_mha, torch_mha)
 
     
