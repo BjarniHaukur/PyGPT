@@ -48,6 +48,7 @@ def main(args):
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
     val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
 
+
     model = model_from_config(config).to(DEVICE)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     
@@ -102,7 +103,7 @@ def main(args):
             train_tqdm.set_postfix({"loss": f"{train_loss:.3f}"})
 
             if i % args.log_interval == 0:
-                wandb.log({"train_loss": train_loss}, step=epoch * len(train_dl) + i)
+                wandb.log({"train_loss": train_loss}, step=epoch * len(train_dl) + i, commit=gsTrue)
 
 
         wandb.log({"avg_train_loss": total_train_loss / len(train_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
@@ -136,7 +137,7 @@ def main(args):
         x = batch[:, :context]
         y = batch[:, context:]
         y_hat = model.generate(B, max_len=L, starting_tokens=x)
-        y_hat = y_hat[:, context:]
+        y_hat = [seq[context:] for seq in y_hat]
         avg_bleu_score = bleu_score(y.tolist(), y_hat)
                     
         gen = model.generate(B, max_len=200)
@@ -156,8 +157,6 @@ def main(args):
             'wandb_id': wandb.run.id,
             'config_name': args.config
         }, model_path / f"epoch_{epoch + 1}.pt")
-
-
 
 
 if __name__ == "__main__":
