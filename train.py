@@ -13,23 +13,9 @@ torch.random.manual_seed(1337)
 
 from utils.dataset import MemmapDataset
 from utils.tokenizer import BOS_ID, EOS_ID, PAD_ID
-from config import load_config
-from models import PyRNN, PyLSTM, PyTransformer
+from models import PyRNN, PyLSTM, PyTransformer, load_config, 
 
 CHECKPOINT_PATH = Path("checkpoints/models")
-
-# Things that can be "quantified" are handled by the config, things like architecture changes should be different classes (reduces boilerplate a tone)
-# i.e. storing things like "prenorm" or "postnorm" in the config is nice but is effectively ignored by the __init__ 
-def create_from_configuration(config_dict):
-    match config_dict["model_type"]:
-        case "PyRNN":
-            return PyRNN(**config_dict)
-        case "PyLSTM":
-            return PyLSTM(**config_dict)
-        case "PyTransformer":
-            return PyTransformer(**config_dict)
-        case _:
-            raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
 
 
 def collate_fn(batch:list[torch.Tensor], max_len:int=2048):

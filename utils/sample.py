@@ -18,9 +18,6 @@ def nucleus_sample(logits:torch.Tensor, nucleus_threshold:float=0.9)->torch.Tens
     sampled_index = torch.multinomial(top_probs, 1)
     return top_indices[sampled_index].unsqueeze(0)
 
-def nucleus_sample_with_temp(logits:torch.Tensor, nucleus_threshold:float=0.9, temperature:float=1.0)->torch.Tensor:
-    return nucleus_sample(logits / temperature, nucleus_threshold)
-
 def top_k_sample(logits:torch.Tensor, k:int=50)->torch.Tensor:
     p = F.softmax(logits, dim=-1)
     top_probs, top_indices = torch.topk(p, k)

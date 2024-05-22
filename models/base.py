@@ -1,29 +1,10 @@
-import yaml
-from abc import ABC
-from dataclasses import dataclass
 from pathlib import Path
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
-CONFIG_PATH = Path("config/")
+import torch.nn as nn
 
-
-def save_config(config: "ModelConfig", file_name: str):
-    with open(CONFIG_PATH / file_name, 'w') as file:
-        yaml.dump(config.__dict__, file)
-
-def load_config(file_name: str) -> 'ModelConfig':
-    file_name += ".yaml" if not file_name.endswith(".yaml") else ""
-    with open(CONFIG_PATH / file_name, 'r') as file:
-        config_dict = yaml.safe_load(file)
-
-    match config_dict["model_type"]:
-        case "PyRNN":
-            return PyRNNConfig(**config_dict)
-        case "PyLSTM":
-            return PyLSTMConfig(**config_dict)
-        case "PyTransformer":
-            return PyTransformerConfig(**config_dict)
-        case _:
-            raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
+CONFIG_PATH = Path("configs/")
 
 @dataclass
 class ModelConfig(ABC):
@@ -59,3 +40,8 @@ class PyTransformerConfig(ModelConfig):
     dropout: float = 0.1
     activation: str = "relu"
     norm_type: str = "prenorm"
+    
+class PyGenerator(ABC, nn.Module):
+    @abstractmethod
+    def generate(self, batch_size:int, max_len:int, nucleus_threshold:float, starting_tokens:list[int]=None):
+        pass

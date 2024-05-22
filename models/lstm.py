@@ -1,10 +1,13 @@
+from .base import PyGenerator
+
+from utils.tokenizer import BOS_ID, EOS_ID
+from utils.sample import nucleus_sample_with_temp
+
 import torch
 import torch.nn as nn
 
-from utils.sample import nucleus_sample_with_temp
-from utils.tokenizer import BOS_ID, EOS_ID
 
-class PyLSTM(nn.Module):
+class PyLSTM(PyGenerator):
     def __init__(self, vocab_size:int, hidden_size:int, n_layers:int, **kwargs):
         super(PyLSTM, self).__init__()
         self.vocab_size, self.hidden_size = vocab_size, hidden_size
