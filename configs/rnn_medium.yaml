@@ -3,5 +3,5 @@ wandb_project: PyGPT
 wandb_group: RNNs
 tokenizer_name: py150k_large
 vocab_size: 578
-hidden_size: 256
-num_layers: 1
+hidden_size: 512
+num_layers: 2
