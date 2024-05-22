@@ -136,6 +136,7 @@ def main(args):
         x = batch[:, :context]
         y = batch[:, context:]
         y_hat = model.generate(B, max_len=L, starting_tokens=x)
+        y_hat = y_hat[:, context:]
         avg_bleu_score = bleu_score(y.tolist(), y_hat)
                     
         gen = model.generate(B, max_len=200)
