@@ -4,26 +4,31 @@ from collections import defaultdict
 
 import numpy as np
 
-def bleu_score(predicted_tokens:list[int], label_tokens:list[int], n_gram:int=4):
-    len_pred, len_label = len(predicted_tokens), len(label_tokens)
-    score = math.exp(min(0, 1 - len_label / len_pred))
-    for n in range(1, min(n_gram, len_pred) + 1):
-        num_matches, label_subs = 0, defaultdict(int)
-        for i in range(len_label - n + 1):
-            label_subs[tuple(label_tokens[i: i + n])] += 1
-        for i in range(len_pred - n + 1):
-            if label_subs[tuple(predicted_tokens[i: i + n])] > 0:
-                num_matches += 1
-                label_subs[tuple(predicted_tokens[i: i + n])] -= 1
-        score *= math.pow(num_matches / (len_pred - n + 1), math.pow(0.5, n))
-    return score
+def bleu_score(predicted_tokens:list[list[int]], label_tokens:list[list[int]], n_gram:int=4):
+    """ Caclulates the average BLEU score for a batch of predicted and label tokens"""
+    bleu_scores = []
+    for preds, labels in zip(predicted_tokens, label_tokens):
+        len_pred, len_label = len(preds), len(labels)
+        score = math.exp(min(0, 1 - len_label / len_pred))
+        for n in range(1, min(n_gram, len_pred) + 1):
+            num_matches, label_subs = 0, defaultdict(int)
+            for i in range(len_label - n + 1):
+                label_subs[tuple(labels[i: i + n])] += 1
+            for i in range(len_pred - n + 1):
+                if label_subs[tuple(preds[i: i + n])] > 0:
+                    num_matches += 1
+                    label_subs[tuple(preds[i: i + n])] -= 1
+            score *= math.pow(num_matches / (len_pred - n + 1), math.pow(0.5, n))
+        bleu_scores.append(score)
+    return np.mean(bleu_scores)
     
 def syntax_error_score(programs:list[str]):
+    """ Calculates the average syntax error score for a batch of programs """
     has_syntax_error = []
     for program in programs:
         try: ast.parse(program)
-        except SyntaxError: has_syntax_error.append(True)
-        else: has_syntax_error.append(False)
+        except SyntaxError: has_syntax_error.append(False)
+        else: has_syntax_error.append(True)
     return np.mean(has_syntax_error)
 
 if __name__ == "__main__":

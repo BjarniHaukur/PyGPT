@@ -43,7 +43,7 @@ class PyLSTM(PyGenerator):
         ct = torch.randn(1, batch_size, self.hidden_size, device=device)
 
         tokens = []
-        for _ in range(max_len):
+        for _ in range(max_len - starting_tokens.shape[1] if starting_tokens is not None else max_len):
             xt, (ht, ct) = self.forward(xt, ht, ct)
             xt = nucleus_sample(xt[:, -1, :], nucleus_threshold)
             
@@ -52,4 +52,4 @@ class PyLSTM(PyGenerator):
         
         self.train()
         tokens = torch.tensor(tokens).T.tolist() # (max_len, batch_size) -> (batch_size, max_len)
-        return [seq[:seq.index(EOS_ID) + 1] if EOS_ID in seq else seq for seq in tokens] # truncate at EOS token
+        return [seq[:seq.index(EOS_ID)] if EOS_ID in seq else seq for seq in tokens] # truncate at EOS token
