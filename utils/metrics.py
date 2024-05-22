@@ -24,12 +24,12 @@ def bleu_score(predicted_tokens:list[list[int]], label_tokens:list[list[int]], n
     
 def syntax_error_score(programs:list[str]):
     """ Calculates the average syntax error score for a batch of programs """
-    has_syntax_error = []
+    parsable = []
     for program in programs:
         try: ast.parse(program)
-        except SyntaxError: has_syntax_error.append(False)
-        else: has_syntax_error.append(True)
-    return np.mean(has_syntax_error)
+        except SyntaxError: parsable.append(False)
+        else: parsable.append(True)
+    return np.mean(parsable)
 
 if __name__ == "__main__":
     programs = [

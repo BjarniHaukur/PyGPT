@@ -140,6 +140,7 @@ def main(args):
                     
         gen = model.generate(B, max_len=200)
         programs = [tokenizer.detokenize(gen_seq) for gen_seq in gen]
+        print(programs)
         avg_syntax_error_score = syntax_error_score(programs)
         
         wandb.log({"avg_bleu4_score": avg_bleu_score}, step=(epoch+1) * len(train_dl))
