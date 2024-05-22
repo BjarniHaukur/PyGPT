@@ -39,8 +39,6 @@ def main(args):
     val_ds = MemmapDataset("eval", config.tokenizer_name)
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
-    train_ds, _ = random_split(val_ds, [0.01, 0.99])
-    val_ds, _ = random_split(val_ds, [0.01, 0.99])
     
     collate = partial(collate_fn, max_len=config_dict.get("context_window", 2048))
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
@@ -50,12 +48,12 @@ def main(args):
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     
     if args.continue_from:
-        print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")
         checkpoint = torch.load(CHECKPOINT_PATH / args.continue_from, map_location=DEVICE)
         model.load_state_dict(checkpoint['model_state_dict'])
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
         wandb.init(project=config.wandb_project, id=checkpoint['wandb_id'], resume="must")
         start_epoch = checkpoint['epoch']
+        print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")
     else:
         wandb.init(
             project=config.wandb_project,
