@@ -1,10 +1,11 @@
-import yaml
-
 from .rnn import PyRNN
 from .lstm import PyLSTM
 from .transformer import PyTransformer
 from .base import ModelConfig, PyRNNConfig, PyLSTMConfig, PyTransformerConfig, PyGenerator, CONFIG_PATH
 
+import yaml
+
+import torch
 
 def save_config(config: "ModelConfig", file_name: str):
     with open(CONFIG_PATH / file_name, 'w') as file:
@@ -36,3 +37,10 @@ def model_from_config(config: "ModelConfig")-> "PyGenerator":
         return PyTransformer(**config.__dict__)
     else:
         raise ValueError(f"Invalid model_type, got {config.model_type}")
+    
+def model_from_checkpoint(checkpoint_path: str)-> "PyGenerator":
+    checkpoint = torch.load(checkpoint_path)
+    config = load_config(checkpoint["config"])
+    model = model_from_config(config)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    return model

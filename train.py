@@ -50,12 +50,12 @@ def main(args):
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     
     if args.continue_from:
-        print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")
         checkpoint = torch.load(CHECKPOINT_PATH / args.continue_from, map_location=DEVICE)
         model.load_state_dict(checkpoint['model_state_dict'])
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
         wandb.init(project=config.wandb_project, id=checkpoint['wandb_id'], resume="must")
         start_epoch = checkpoint['epoch']
+        print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")
     else:
         wandb.init(
             project=config.wandb_project,
@@ -130,6 +130,7 @@ def main(args):
             'optimizer_state_dict': optim.state_dict(),
             'loss': total_train_loss / len(train_dl),
             'wandb_id': wandb.run.id,
+            'config_name': args.config
         }, model_path / f"epoch_{epoch + 1}.pt")
 
 

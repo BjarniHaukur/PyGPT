@@ -13,7 +13,7 @@ class ModelConfig(ABC):
     wandb_project: str
     wandb_group: str
     tokenizer_name: str
-    vocab_size: int # i.e. the vocab size
+    vocab_size: int
 
 @dataclass
 class PyRNNConfig(ModelConfig):
