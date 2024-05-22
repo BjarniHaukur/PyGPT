@@ -22,7 +22,7 @@ class TransformerDecoder(nn.Module):
         return [None] * len(self.blks)
 
     def forward(self, X, state):
-        # X = self.pos_encoding(self.embedding(X) * math.sqrt(self.num_hiddens))
+        X = self.pos_encoding(self.embedding(X) * math.sqrt(self.num_hiddens))
         self._attention_weights = [None] * len(self.blks)
         for i, blk in enumerate(self.blks):
             X, state = blk(X, state)
