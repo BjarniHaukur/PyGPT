@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from attention import PyMultiheadAttention
 
 
 class AddNorm(nn.Module):
@@ -26,12 +27,12 @@ class PositionWiseFFN(nn.Module):
 class MultiHeadAttention(nn.Module):
     def __init__(self, num_hiddens, num_heads, dropout):
         super(MultiHeadAttention, self).__init__()
-        self.attention = nn.MultiheadAttention(num_hiddens, num_heads, dropout=dropout,batch_first=True)
+        self.attention = PyMultiheadAttention(num_hiddens, num_heads, dropout=dropout,batch_first=True)
         self.num_heads = num_heads
-    
+
     def forward(self, query, key, value, attn_mask):
         # query : batch_size, seq_len, num_hiddens
-        attn_output, _ = self.attention(query, key, value, attn_mask=attn_mask, is_causal=False, need_weights=False)
+        attn_output = self.attention(query, key, value)
         return attn_output
 
 

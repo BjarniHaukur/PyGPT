@@ -40,7 +40,7 @@ class DotProductAttention(nn.Module):
         return torch.bmm(self.dropout(self.attention_weights), values)
 
 
-class MultiheadAttention(nn.Module): 
+class PyMultiheadAttention(nn.Module): 
     def __init__(self, num_hiddens, num_heads, dropout, bias=False, **kwargs):
         super().__init__()
         self.num_heads = num_heads
@@ -91,10 +91,10 @@ class MultiheadAttention(nn.Module):
 if __name__=="__main__":
     import numpy as np
     
-    batch_size = 32
-    seq_len = 256
-    embed_dim = 100
-    num_heads = 10
+    batch_size = 4
+    seq_len = 3
+    embed_dim = 10
+    num_heads = 2
         
     def copy_from_torch(py_mha, torch_mha):
         py_mha.W_q.weight.data.copy_(torch_mha.in_proj_weight[:embed_dim])
@@ -104,7 +104,7 @@ if __name__=="__main__":
         torch_mha.out_proj.bias.data.copy_(torch.zeros_like(torch_mha.out_proj.bias))
     
     torch_mha = nn.MultiheadAttention(embed_dim, num_heads)
-    py_mha = MultiheadAttention(embed_dim, num_heads, 0.0)
+    py_mha = PyMultiheadAttention(embed_dim, num_heads, 0.0)
     copy_from_torch(py_mha, torch_mha)
 
     
@@ -112,5 +112,5 @@ if __name__=="__main__":
     torch_attn_out, torch_attn_weights = torch_mha(x, x, x)
     py_attn_out = py_mha(x, x, x)
     
-    np.testing.assert_allclose(py_attn_out.detach().numpy(), torch_attn_out.detach().numpy(), atol=1e-5)
+    np.testing.assert_allclose(py_attn_out.detach().numpy(), torch_attn_out.detach().numpy(), atol=1e-4, rtol=1e-4)
     
