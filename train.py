@@ -45,8 +45,8 @@ def main(args):
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
     
     collate = partial(collate_fn, max_len=config_dict.get("context_window", args.seq_len))
-    train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=4, persistent_workers=True)
-    val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=4, persistent_workers=True)
+    train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
+    val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
 
 
     model = model_from_config(config).to(DEVICE)
@@ -61,6 +61,7 @@ def main(args):
         print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")
     else:
         wandb.init(
+            name=args.run_name,
             project=config.wandb_project,
             config={
                 "learning_rate": args.lr,
@@ -142,7 +143,6 @@ def main(args):
                     
         gen = model.generate(B, max_len=200)
         programs = [tokenizer.detokenize(gen_seq) for gen_seq in gen]
-        print(programs)
         avg_syntax_error_score = syntax_error_score(programs)
         
         wandb.log({"avg_bleu4_score": avg_bleu_score}, step=(epoch+1) * len(train_dl))
@@ -162,12 +162,15 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train RNNs/Transformers for Python code generation")
     parser.add_argument("config", type=str, help="Path to the YAML configuration file")
+    parser.add_argument("--run_name", type=str, default=None)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--seq_len", type=int, default=2048)
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--log_interval", type=int, default=100, help="Number of batches between logging training status to Wandb")
     parser.add_argument("--continue_from", type=str, default=None, help="Path to checkpoint file to resume training from")
+    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--prefetch_factor", type=int, default=4)
     args = parser.parse_args()
     main(args)
 

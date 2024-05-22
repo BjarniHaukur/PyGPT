@@ -12,8 +12,8 @@ class PyGRU(PyGenerator):
         self.vocab_size, self.hidden_size = vocab_size, hidden_size
         
         self.embed = embedding.PyEmbedding(vocab_size, hidden_size)
-        # self.embed = nn.Embedding(vocab_size, hidden_size)
         # self.rnn = dgru.PyGRU(hidden_size, hidden_size, num_layers)
+        # self.embed = nn.Embedding(vocab_size, hidden_size)
         self.rnn = nn.GRU(hidden_size, hidden_size, num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, vocab_size)
         

@@ -91,8 +91,6 @@ class BPETokenizer:
                 if substring in self.chr_to_ids:
                     token = substring
                     token_idx = j - i
-                else:
-                    break # as soon as a substring is not in the vocabulary we stop
                 
             if token_idx == -1:
                 token = UNK

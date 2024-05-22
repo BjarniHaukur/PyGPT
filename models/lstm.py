@@ -1,7 +1,7 @@
 from .base import PyGenerator
 
 from modules import embedding, lstm
-from utils.sample import nucleus_sample
+from utils.sample import nucleus_sample, sample_with_temp
 from utils.tokenizer import BOS_ID, EOS_ID
 
 import torch
@@ -28,29 +28,29 @@ class PyLSTM(PyGenerator):
             self,
             batch_size:int,
             max_len:int=1000,
-            nucleus_threshold:float=0.9,
+            temperature:float=None,
+            nucleus_threshold:float=None,
             starting_tokens:torch.Tensor=None
         ) -> list[list[int]]:
-        """ Generates a batch of tokens, returning a list of potentially variable length sequences """
+        """Generates a batch of tokens, returning a list of potentially variable length sequences. If both nucleus_threshold and temperature are supplied, sampling with temperature is used"""
         self.eval()
         device = next(self.parameters()).device
         
         # Prepare the batch of starting tokens
         xt = torch.tensor([BOS_ID] * batch_size, device=device).unsqueeze(1)
+        ht, ct = None, None
         if starting_tokens is not None:
             xt = torch.cat([xt, starting_tokens], dim=1)
     
-        ht = torch.randn(1, batch_size, self.hidden_size, device=device)
-        ct = torch.randn(1, batch_size, self.hidden_size, device=device)
-
-        tokens = []
+        tokens = [] if starting_tokens is None else starting_tokens.T.tolist()
         for _ in range(max_len - starting_tokens.shape[1] if starting_tokens is not None else max_len):
             xt, (ht, ct) = self.forward(xt, ht, ct)
-            xt = nucleus_sample(xt[:, -1, :], nucleus_threshold)
-            
+            if temperature:
+                xt = sample_with_temp(xt[:,-1,:], temperature=temperature)
+            else:
+                xt = nucleus_sample(xt[:, -1, :], nucleus_threshold)
             tokens.append(xt.tolist())
             xt = xt.unsqueeze(1)
         
         self.train()
-        tokens = torch.tensor(tokens).T.tolist() # (max_len, batch_size) -> (batch_size, max_len)
-        return [seq[:seq.index(EOS_ID)] if EOS_ID in seq else seq for seq in tokens] # truncate at EOS token
+        return torch.tensor(tokens).T.tolist()

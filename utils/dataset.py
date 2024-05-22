@@ -44,7 +44,8 @@ class MemmapDataset(Dataset):
         if idx < 0: idx += len(self)
         encoded = self.memmap[idx * self.num_chars: (idx + 1) * self.num_chars]
         text = encoded.tobytes().decode('iso-8859-1')
-        text = text[text.find("\n"):text.rfind("\n")] # start after newline and end at newline, shouldnt drop too much data
+        text = text[(text.find("\n")+1):text.rfind("\n")] # start after newline and end at newline, shouldnt drop too much data
+        text = text.lstrip().rstrip()
         # remove from start until you reach a space, remove end until you reach a space
         tokens = self.tokenizer.tokenize(text)
         return torch.tensor(tokens, dtype=torch.long)

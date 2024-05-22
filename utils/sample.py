@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 def sample_with_temp(logits:torch.Tensor, temperature:float=1.0)->torch.Tensor:
     p = F.softmax(logits / temperature, dim=-1)
-    return torch.multinomial(p, 1)
+    return torch.multinomial(p, 1).squeeze(-1)
 
 def nucleus_sample(logits:torch.Tensor, nucleus_threshold:float=0.9)->torch.Tensor:
     B, D = logits.shape
@@ -33,5 +33,5 @@ def top_k_sample(logits:torch.Tensor, k:int=50)->torch.Tensor:
     top_probs, top_indices = torch.topk(p, k)
     top_probs /= top_probs.sum()
     sampled_index = torch.multinomial(top_probs, 1)
-    return top_indices[sampled_index]
+    return top_indices[sampled_index].squeeze(-1)
 
