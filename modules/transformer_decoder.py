@@ -59,6 +59,7 @@ class PositionalEncoding(nn.Module):
     
 
 # Testing the implementation
+# Note: you have comment the positional encoding line in the forward function of the TransformerDecoder 
 if __name__ == "__main__":
     import numpy as np
 

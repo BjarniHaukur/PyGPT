@@ -91,26 +91,32 @@ class PyMultiheadAttention(nn.Module):
 if __name__=="__main__":
     import numpy as np
     
-    batch_size = 4
-    seq_len = 3
-    embed_dim = 10
-    num_heads = 2
-        
-    def copy_from_torch(py_mha, torch_mha):
-        py_mha.W_q.weight.data.copy_(torch_mha.in_proj_weight[:embed_dim])
-        py_mha.W_k.weight.data.copy_(torch_mha.in_proj_weight[embed_dim:2*embed_dim])
-        py_mha.W_v.weight.data.copy_(torch_mha.in_proj_weight[2*embed_dim:])
-        py_mha.W_o.weight.data.copy_(torch_mha.out_proj.weight.T)
-        torch_mha.out_proj.bias.data.copy_(torch.zeros_like(torch_mha.out_proj.bias))
-    
-    torch_mha = nn.MultiheadAttention(embed_dim, num_heads)
-    py_mha = PyMultiheadAttention(embed_dim, num_heads, 0.0)
-    copy_from_torch(py_mha, torch_mha)
+    B = 5
+    L = S = 3
+    D = 10
 
+    q = torch.randn(B, L, D)
+    k = torch.randn(B, S, D)
+    v = torch.randn(B, S, D)
+
+    dot_prod_attention = DotProductAttention(0)
+    out = dot_prod_attention(q, k, v)
+    torch_out = F.scaled_dot_product_attention(q, k, v)
     
-    x = torch.randn(batch_size, seq_len, embed_dim)
-    torch_attn_out, torch_attn_weights = torch_mha(x, x, x)
-    py_attn_out = py_mha(x, x, x)
-    
-    np.testing.assert_allclose(py_attn_out.detach().numpy(), torch_attn_out.detach().numpy(), atol=1e-4, rtol=1e-4)
-    
+    assert torch.allclose(out, torch_out, atol=1e-6)
+
+    n_heads = 2
+    mha = PyMultiheadAttention(D, n_heads, 0)
+    torch_mha = nn.MultiheadAttention(D, n_heads, bias=False, batch_first=True)
+
+    mha.W_q.weight = torch.nn.Parameter(torch_mha.in_proj_weight[:D])
+    mha.W_k.weight = torch.nn.Parameter(torch_mha.in_proj_weight[D:2*D])
+    mha.W_v.weight = torch.nn.Parameter(torch_mha.in_proj_weight[2*D:3*D])
+    mha.W_o.weight = torch.nn.Parameter(torch_mha.out_proj.weight)
+
+    attn_mask = ~torch.tril(torch.ones((n_heads*B, L, S))).bool()
+
+    out = mha(q, k, v)
+    torch_out = torch_mha(q, k, v, attn_mask=attn_mask)
+
+    assert torch.allclose(out, torch_out[0], atol=1e-6)
