@@ -13,12 +13,13 @@ class PyLSTM(PyGenerator):
         self.vocab_size, self.hidden_size = vocab_size, hidden_size
         
         self.embed = embedding.PyEmbedding(vocab_size, hidden_size)
-        self.rnn = lstm.PyLSTM(hidden_size, hidden_size, num_layers)
+        # self.rnn = lstm.PyLSTM(hidden_size, hidden_size, num_layers)
+        self.rnn = nn.LSTM(hidden_size, hidden_size, num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, vocab_size)
         
     def forward(self, x, h=None, c=None):
         x = self.embed(x)
-        x, (h, c) = self.rnn(x, h, c) # i.e. 100% teacher forcing
+        x, (h, c) = self.rnn(x) # i.e. 100% teacher forcing
         x = self.linear(x)
         return x, (h, c)
     
