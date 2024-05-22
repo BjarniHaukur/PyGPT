@@ -46,7 +46,7 @@ def main(args):
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
     val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
 
-    model = create_from_configuration(config_dict).to(DEVICE)
+    model = model_from_config(config).to(DEVICE)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     
     if args.continue_from:
