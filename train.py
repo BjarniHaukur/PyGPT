@@ -45,8 +45,8 @@ def main(args):
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
     
     collate = partial(collate_fn, max_len=config_dict.get("context_window", args.seq_len))
-    train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
-    val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=8, persistent_workers=True)
+    train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=4, persistent_workers=True)
+    val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=4, num_workers=4, persistent_workers=True)
 
     model = model_from_config(config).to(DEVICE)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
