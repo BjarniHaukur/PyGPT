@@ -139,8 +139,8 @@ def ansi_color(rgb:tuple[int, int, int]) -> str:
     return f'\x1b[48;2;{rgb[0]};{rgb[1]};{rgb[2]}m'
 
 def html_color(rgb:tuple[int, int, int]) -> str:
-    """Return HTML style for a custom RGB text color."""
-    return f'style="color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]});"'
+    """Return HTML style for a custom RGB background color."""
+    return f'style="background-color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]})"'
 
 
 if __name__ == "__main__":
