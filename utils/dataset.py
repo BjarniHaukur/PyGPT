@@ -47,7 +47,7 @@ class MemmapDataset(Dataset):
         text = text[text.find("\n"):text.rfind("\n")] # start after newline and end at newline, shouldnt drop too much data
         # remove from start until you reach a space, remove end until you reach a space
         tokens = self.tokenizer.tokenize(text)
-        return torch.tensor(tokens)
+        return torch.tensor(tokens, dtype=torch.long)
         
     def __len__(self):
         return len(self.memmap) // self.num_chars
