@@ -1,5 +1,6 @@
 from .rnn import PyRNN
 from .lstm import PyLSTM
+from .gru import PyGRU
 from .transformer import PyTransformer
 from .base import ModelConfig, PyRNNConfig, PyLSTMConfig, PyTransformerConfig, PyGenerator, CONFIG_PATH
 
@@ -33,6 +34,8 @@ def model_from_config(config: "ModelConfig")-> "PyGenerator":
         return PyRNN(**config.__dict__)
     elif config.model_type == "PyLSTM":
         return PyLSTM(**config.__dict__)
+    elif config.model_type == "PyGRU":
+        return PyGRU(**config.__dict__)
     elif config.model_type ==  "PyTransformer":
         return PyTransformer(**config.__dict__)
     else:

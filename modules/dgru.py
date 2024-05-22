@@ -1,4 +1,4 @@
-from .gru import PyGRUCell
+from gru import PyGRUCell
 
 import torch
 import torch.nn as nn
