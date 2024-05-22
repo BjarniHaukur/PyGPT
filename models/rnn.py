@@ -12,7 +12,9 @@ class PyRNN(PyGenerator):
         self.vocab_size, self.hidden_size = vocab_size, hidden_size
         
         self.embed = embedding.PyEmbedding(vocab_size, hidden_size)
-        self.rnn = rnn.PyRNN(hidden_size, hidden_size, num_layers)
+        # self.embed = nn.Embedding(vocab_size, hidden_size)
+        # self.rnn = rnn.PyRNN(hidden_size, hidden_size, num_layers)
+        self.rnn = nn.RNN(hidden_size, hidden_size, num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, vocab_size)
         
     def forward(self, x, h=None):
