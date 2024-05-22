@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from embedding import PyEmbedding
-from transformer_decoder_blk import TransformerDecoderBlock
+from transformer_decoder_blk import PyTransformerDecoderBlock
 import math
 
 
@@ -14,7 +14,7 @@ class TransformerDecoder(nn.Module):
         self.pos_encoding = PositionalEncoding(num_hiddens, dropout=dropout)
         self.blks = nn.Sequential()
         for i in range(num_blks):
-            self.blks.add_module("block"+str(i), TransformerDecoderBlock(
+            self.blks.add_module("block"+str(i), PyTransformerDecoderBlock(
                 num_hiddens, ffn_num_hiddens, num_heads, dropout, i))
         self.dense = nn.Linear(num_hiddens, vocab_size)
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     ffn_num_hiddens = 64
     num_heads = 2
     dropout = 0
-    num_layers = 1
+    num_layers = 2
 
     # Dummy input and states
     X = torch.randint(0, vocab_size, (batch_size, seq_len))
