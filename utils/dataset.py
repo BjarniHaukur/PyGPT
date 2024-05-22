@@ -15,7 +15,7 @@ class Py150kDataset(Dataset):
     """ Reads and tokenizes each file in the Py150k dataset. """
     def __init__(self, split:Literal["train","eval"], tokenizer_name:str):
         self.files = open(
-            DATA_PATH / "python" / ("100k_train.txt" if split=="train" else "50k_eval.txt"),
+            DATA_PATH / ("python100k_train.txt" if split=="train" else "50k_eval.txt"),
             "r", encoding='utf-8'
         ).read().split("\n")[:-1] # last is empty line
         self.tokenizer = BPETokenizer.load(tokenizer_name)
