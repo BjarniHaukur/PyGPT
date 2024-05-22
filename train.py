@@ -13,6 +13,7 @@ torch.random.manual_seed(1337)
 
 from utils.dataset import MemmapDataset
 from utils.tokenizer import BOS_ID, EOS_ID, PAD_ID
+from utils.evaluation import evaluate_generation
 from config import load_config
 from models import PyRNN, PyLSTM, PyTransformer
 
@@ -135,7 +136,14 @@ def main(args):
                 val_loss = loss.detach().cpu().numpy()
                 total_val_loss += val_loss
                 val_tqdm.set_postfix({"val_loss": f"{val_loss:.3f}"})
-
+        
+        generation_scores = evaluate_generation(model, val_dl, config.tokenizer, input_len=1000, output_len=20)
+        
+        wandb.log({
+            "bleu": generation_scores.bleu,
+            "syntax_error": generation_scores.syntaxError,
+        }, step=(epoch+1) * len(train_dl))
+        
         wandb.log({"avg_val_loss": total_val_loss / len(val_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
 
         torch.save({
