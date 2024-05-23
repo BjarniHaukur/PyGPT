@@ -1,11 +1,13 @@
 from .base import PyGenerator
 
+from modules import transformer_decoder, embedding
+from utils.tokenizer import BOS_ID, EOS_ID
+from utils.sample import nucleus_sample, sample_with_temp
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from modules import transformer_decoder
-from utils.tokenizer import BOS_ID, EOS_ID
-from utils.sample import nucleus_sample, sample_with_temp
+
 
 
 class PyTransformer(PyGenerator):
@@ -28,12 +30,13 @@ class PyTransformer(PyGenerator):
         self.context_window_size = context_window_size
         self.dropout = dropout
 
-        self.embed = nn.Embedding(vocab_size, d_model)
+        self.tok_embed = nn.Embedding(vocab_size, d_model)
+        self.pos_embed = embedding.PositionalEncoding(d_model, dropout=dropout)
         self.decoder = transformer_decoder.TransformerDecoder(vocab_size, d_model, d_feedforward, num_attn_heads, num_decoder_layers, dropout)
         self.linear = nn.Linear(d_model, vocab_size)
 
     def forward(self, x, hc=None):
-        x = self.embed(x)
+        x = self.pos_embed(self.embed(x))
         x = self.decoder(x)
         x = self.linear(x)
         return x, hc

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from embedding import PyEmbedding
 from transformer_decoder_blk import PyTransformerDecoderBlock
 import math
 
@@ -10,8 +9,6 @@ class TransformerDecoder(nn.Module):
                  num_blks, dropout):
         super().__init__()
         self.num_hiddens = num_hiddens
-        self.embedding = PyEmbedding(vocab_size, num_hiddens)
-        self.pos_encoding = PositionalEncoding(num_hiddens, dropout=dropout)
         self.blks = nn.Sequential()
         for i in range(num_blks):
             self.blks.add_module("block"+str(i), PyTransformerDecoderBlock(
@@ -19,34 +16,8 @@ class TransformerDecoder(nn.Module):
         self.dense = nn.Linear(num_hiddens, vocab_size)
 
     def forward(self, x):
-        x = self.pos_encoding(self.embedding(x)) 
-        #self._attention_weights = [None] * len(self.blks)
-        # Decoder self-attention weights : WE CANT DO THIS WITH FLASH ATTENTION :( 
-        #self._attention_weights[i] = blk.attention.attention.attention_weights
         x = self.blks(x)
         return self.dense(x)
-
- 
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-        pe = torch.zeros(max_len, 1, d_model)
-        pe[:, 0, 0::2] = torch.sin(position * div_term)
-        pe[:, 0, 1::2] = torch.cos(position * div_term)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Arguments:
-            x: Tensor, shape [seq_len, batch_size, embedding_dim]
-        """
-        x = x + self.pe[:x.size(0)]
-        return self.dropout(x)
-    
 
 # Testing the implementation
 # Note: you have comment the positional encoding line in the forward function of the TransformerDecoder 
@@ -109,7 +80,7 @@ if __name__ == "__main__":
 
     tgt_msk = ~torch.tril(torch.ones((seq_len, seq_len), device=X.device)).bool()
         
-    pytorch_output = pytorch_decoder(custom_decoder.embedding(X).clone(), enc_outputs, tgt_mask=tgt_msk)
+    pytorch_output = pytorch_decoder(X, enc_outputs, tgt_mask=tgt_msk)
     my_out = custom_decoder(custom_decoder.embedding(X).clone())
 
     assert my_out.shape == pytorch_output.shape
