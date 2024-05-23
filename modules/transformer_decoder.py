@@ -19,7 +19,7 @@ class TransformerDecoder(nn.Module):
         self.dense = nn.Linear(num_hiddens, vocab_size)
 
     def forward(self, x):
-        # x = self.pos_encoding(self.embedding(x)) 
+        x = self.pos_encoding(self.embedding(x)) 
         #self._attention_weights = [None] * len(self.blks)
         # Decoder self-attention weights : WE CANT DO THIS WITH FLASH ATTENTION :( 
         #self._attention_weights[i] = blk.attention.attention.attention_weights
