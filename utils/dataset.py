@@ -32,12 +32,11 @@ class Py150kDataset(Dataset):
 
 class MemmapDataset(Dataset):
     """ Reads tokens from a memmap file. """
-    def __init__(self, memmap_name:str, tokenizer_name: str, num_tokens: int = 4096):
+    def __init__(self, memmap_name:str, num_tokens: int = 4096):
         self.memmap = np.memmap(
             DATA_PATH / (memmap_name + ".dat"),
             dtype="uint16", mode="r"
         )
-        self.tokenizer = BPETokenizer.load(tokenizer_name)
         self.num_tokens = num_tokens
 
     @lru_cache()
