@@ -56,6 +56,7 @@ def main(args):
         checkpoint = torch.load(CHECKPOINT_PATH / args.continue_from, map_location=DEVICE)
         model.load_state_dict(checkpoint['model_state_dict'])
         optim.load_state_dict(checkpoint['optimizer_state_dict'])
+        for param_group in optim.param_groups: param_group["lr"] = args.lr
         wandb.init(project=config.wandb_project, id=checkpoint['wandb_id'], resume="must")
         start_epoch = checkpoint['epoch']
         print(f"Resuming training from checkpoint {args.continue_from}, starting at epoch {start_epoch}")

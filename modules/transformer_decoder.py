@@ -15,24 +15,18 @@ class TransformerDecoder(nn.Module):
         self.blks = nn.Sequential()
         for i in range(num_blks):
             self.blks.add_module("block"+str(i), PyTransformerDecoderBlock(
-                num_hiddens, ffn_num_hiddens, num_heads, dropout, i))
+                num_hiddens, ffn_num_hiddens, num_heads, dropout))
         self.dense = nn.Linear(num_hiddens, vocab_size)
 
-   
-
-    def forward(self, X):
-        X = self.pos_encoding(self.embedding(X) * math.sqrt(self.num_hiddens)) 
+    def forward(self, x):
+        # x = self.pos_encoding(self.embedding(x)) 
         #self._attention_weights = [None] * len(self.blks)
-        for i, blk in enumerate(self.blks):
-            X= blk(X)
-            # Decoder self-attention weights : WE CANT DO THIS WITH FLASH ATTENTION :( 
-            #self._attention_weights[i] = blk.attention1.attention.attention.attention_weights
-            
-        return self.dense(X)
+        # Decoder self-attention weights : WE CANT DO THIS WITH FLASH ATTENTION :( 
+        #self._attention_weights[i] = blk.attention.attention.attention_weights
+        x = self.blks(x)
+        return self.dense(x)
 
  
-    
-
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
         super().__init__()
@@ -87,14 +81,14 @@ if __name__ == "__main__":
     for i in range(num_layers):
         
         # Copy the weights from the custom model's MultiHead layer to the PyTorch model
-        custom_decoder.blks[i].attention1.attention.W_q.weight = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_weight[:num_hiddens])
-        # custom_decoder.blks[i].attention1.attention.W_q.bias = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_bias[:num_hiddens])
-        custom_decoder.blks[i].attention1.attention.W_k.weight = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_weight[num_hiddens:2*num_hiddens])
-        # custom_decoder.blks[i].attention1.attention.W_k.bias = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_bias[num_hiddens:2*num_hiddens])
-        custom_decoder.blks[i].attention1.attention.W_v.weight = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_weight[2*num_hiddens:3*num_hiddens])
-        # custom_decoder.blks[i].attention1.attention.W_v.bias = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_bias[2*num_hiddens:])
-        custom_decoder.blks[i].attention1.attention.W_o.weight = nn.Parameter(pytorch_decoder.layers[i].self_attn.out_proj.weight)
-        # custom_decoder.blks[i].attention1.attention.W_o.bias = nn.Parameter(pytorch_decoder.layers[i].self_attn.out_proj.bias)
+        custom_decoder.blks[i].attention.W_q.weight = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_weight[:num_hiddens])
+        # custom_decoder.blks[i].attention.W_q.bias = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_bias[:num_hiddens])
+        custom_decoder.blks[i].attention.W_k.weight = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_weight[num_hiddens:2*num_hiddens])
+        # custom_decoder.blks[i].attention.W_k.bias = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_bias[num_hiddens:2*num_hiddens])
+        custom_decoder.blks[i].attention.W_v.weight = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_weight[2*num_hiddens:3*num_hiddens])
+        # custom_decoder.blks[i].attention.W_v.bias = nn.Parameter(pytorch_decoder.layers[i].self_attn.in_proj_bias[2*num_hiddens:])
+        custom_decoder.blks[i].attention.W_o.weight = nn.Parameter(pytorch_decoder.layers[i].self_attn.out_proj.weight)
+        # custom_decoder.blks[i].attention.W_o.bias = nn.Parameter(pytorch_decoder.layers[i].self_attn.out_proj.bias)
 
         # Copy the weights from the custom model's AddNorm layer to the PyTorch model
         pytorch_decoder.layers[i].norm1.weight = nn.Parameter(custom_decoder.blks[i].addnorm1.ln.weight)
