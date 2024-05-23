@@ -45,7 +45,6 @@ class PyMultiheadAttention(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         self.dropout = dropout
-        self.attention = DotProductAttention(dropout)
         self.W_q = nn.Linear(num_hiddens, num_hiddens, bias=bias)
         self.W_k = nn.Linear(num_hiddens, num_hiddens, bias=bias)
         self.W_v = nn.Linear(num_hiddens, num_hiddens, bias=bias)

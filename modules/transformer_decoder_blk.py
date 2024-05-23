@@ -30,7 +30,7 @@ class MultiHeadAttention(nn.Module):
         self.attention = PyMultiheadAttention(num_hiddens, num_heads, dropout=dropout,batch_first=True)
         self.num_heads = num_heads
 
-    def forward(self, query, key, value, attn_mask):
+    def forward(self, query, key, value):
         # query : batch_size, seq_len, num_hiddens
         attn_output = self.attention(query, key, value)
         return attn_output
@@ -50,24 +50,11 @@ class PyTransformerDecoderBlock(nn.Module):
         
         
 
-    def forward(self, X, state):
-        
-        if state[self.i] is None:
-            key_values = X
-        else:
-            key_values = torch.cat((state[self.i], X), dim=1)
-        state[self.i] = key_values
-
-        if self.training:
-            batch_size, num_steps, _ = X.shape
-            dec_mask = ~torch.tril(torch.ones((num_steps, num_steps), device=X.device)).bool()
-        else:
-            dec_mask = None
-
-
-        X2 = self.attention1(X, key_values, key_values, dec_mask)
+    def forward(self, X):
+        key_values = X
+        X2 = self.attention1(X, key_values, key_values)
         Y = self.addnorm1(X, X2)
-        return self.addnorm2(Y, self.ffn(Y)), state
+        return self.addnorm2(Y, self.ffn(Y))
     
     # Testing the implementation
 if __name__ == "__main__":

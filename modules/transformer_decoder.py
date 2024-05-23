@@ -18,22 +18,19 @@ class TransformerDecoder(nn.Module):
                 num_hiddens, ffn_num_hiddens, num_heads, dropout, i))
         self.dense = nn.Linear(num_hiddens, vocab_size)
 
-    def init_state(self):
-        return [None] * len(self.blks)
+   
 
-    def forward(self, X, state):
-        X = self.pos_encoding(self.embedding(X) * math.sqrt(self.num_hiddens))
-        self._attention_weights = [None] * len(self.blks)
+    def forward(self, X):
+        X = self.pos_encoding(self.embedding(X) * math.sqrt(self.num_hiddens)) 
+        #self._attention_weights = [None] * len(self.blks)
         for i, blk in enumerate(self.blks):
-            X, state = blk(X, state)
-            # Decoder self-attention weights
-            self._attention_weights[i] = blk.attention1.attention.attention.attention_weights
+            X= blk(X)
+            # Decoder self-attention weights : WE CANT DO THIS WITH FLASH ATTENTION :( 
+            #self._attention_weights[i] = blk.attention1.attention.attention.attention_weights
             
-        return self.dense(X), state
+        return self.dense(X)
 
-    @property
-    def attention_weights(self):
-        return self._attention_weights
+ 
     
 
 class PositionalEncoding(nn.Module):
@@ -77,7 +74,8 @@ if __name__ == "__main__":
     enc_outputs = torch.zeros(batch_size, seq_len, num_hiddens)
     # enc_valid_lens = torch.arange(1, seq_len + 1, device=X.device).repeat(batch_size, 1)
     # enc_mask = (enc_valid_lens.unsqueeze(1) >= torch.arange(seq_len, device=enc_valid_lens.device)).bool()
-    state = [None] * num_layers
+
+    #state = [None] * num_layers
 
     # Initialize custom TransformerDecoderBlock
     custom_decoder = TransformerDecoder(vocab_size, num_hiddens, ffn_num_hiddens, num_heads, num_layers, dropout)
@@ -118,10 +116,11 @@ if __name__ == "__main__":
     tgt_msk = ~torch.tril(torch.ones((seq_len, seq_len), device=X.device)).bool()
         
     pytorch_output = pytorch_decoder(custom_decoder.embedding(X).clone(), enc_outputs, tgt_mask=tgt_msk)
-    my_out = custom_decoder(custom_decoder.embedding(X).clone(), custom_decoder.init_state())
+    my_out = custom_decoder(custom_decoder.embedding(X).clone())
 
-    assert my_out[0].shape == pytorch_output.shape
-    assert torch.allclose(my_out[0], pytorch_output, atol=1e-4)
+    assert my_out.shape == pytorch_output.shape
+    assert torch.allclose(my_out, pytorch_output, atol=1e-4)
+  
 
     # Check individual blocks
     # my_Y = custom_decoder_block.addnorm1(X, custom_decoder_block.attention1(X,X,X,tgt_msk))
