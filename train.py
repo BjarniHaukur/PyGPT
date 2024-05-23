@@ -31,6 +31,10 @@ def collate_fn(batch:list[torch.Tensor], max_len:int=2048):
 def main(args):
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     DEVICE = "mps" if torch.backends.mps.is_available() else DEVICE
+
+    # speedup
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
     
     print(f"Training on device: {DEVICE}")
 
@@ -51,6 +55,7 @@ def main(args):
 
     model = model_from_config(config).to(DEVICE)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scaler = torch.cuda.amp.GradScaler()
     
     if args.continue_from:
         checkpoint = torch.load(CHECKPOINT_PATH / args.continue_from, map_location=DEVICE)
@@ -81,8 +86,10 @@ def main(args):
 
     model_path = CHECKPOINT_PATH / wandb.run.name
     model_path.mkdir(parents=True, exist_ok=True)
-
+    
+    model = torch.compile(model)
     model.train()
+
     for epoch in range(start_epoch, start_epoch + args.epochs):
         train_tqdm = tqdm(train_dl, desc=f"Epoch {epoch + 1}/{start_epoch + args.epochs} Training")
         total_train_loss = 0
@@ -92,14 +99,15 @@ def main(args):
             x = batch[..., :-1]
             y = batch[..., 1:]
             
-            y_hat = model(x)
-            if isinstance(y_hat, tuple): y_hat = y_hat[0]
-
-            loss = criterion(y_hat.reshape(-1, config.vocab_size), y.reshape(-1))
+            with torch.cuda.amp.autocast(True):
+                y_hat = model(x)
+                if isinstance(y_hat, tuple): y_hat = y_hat[0]
+                loss = criterion(y_hat.reshape(-1, config.vocab_size), y.reshape(-1))
 
             optim.zero_grad()
-            loss.backward()
-            optim.step()
+            scaler.scale(loss).backward()
+            scaler.step(optim)
+            scaler.update()
 
             train_loss = loss.detach().cpu().numpy()
             total_train_loss += train_loss
