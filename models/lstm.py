@@ -12,16 +12,17 @@ class PyLSTM(PyGenerator):
         super(PyLSTM, self).__init__()
         self.vocab_size, self.hidden_size = vocab_size, hidden_size
         
-        self.embed = embedding.PyEmbedding(vocab_size, hidden_size)
+        # self.embed = embedding.PyEmbedding(vocab_size, hidden_size)
         # self.rnn = lstm.PyLSTM(hidden_size, hidden_size, num_layers)
+        self.embed = nn.Embedding(vocab_size, hidden_size)
         self.rnn = nn.LSTM(hidden_size, hidden_size, num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, vocab_size)
         
-    def forward(self, x, h=None, c=None):
+    def forward(self, x, hc=None):
         x = self.embed(x)
-        x, (h, c) = self.rnn(x) # i.e. 100% teacher forcing
+        x, hc = self.rnn(x, hc) # i.e. 100% teacher forcing
         x = self.linear(x)
-        return x, (h, c)
+        return x, hc
     
     @torch.no_grad()
     def generate(
@@ -38,13 +39,13 @@ class PyLSTM(PyGenerator):
         
         # Prepare the batch of starting tokens
         xt = torch.tensor([BOS_ID] * batch_size, device=device).unsqueeze(1)
-        ht, ct = None, None
+        hc = None
         if starting_tokens is not None:
             xt = torch.cat([xt, starting_tokens], dim=1)
     
         tokens = [] if starting_tokens is None else starting_tokens.T.tolist()
         for _ in range(max_len - starting_tokens.shape[1] if starting_tokens is not None else max_len):
-            xt, (ht, ct) = self.forward(xt, ht, ct)
+            xt, hc = self.forward(xt, hc)
             if temperature:
                 xt = sample_with_temp(xt[:,-1,:], temperature=temperature)
             else:

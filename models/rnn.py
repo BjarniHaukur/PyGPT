@@ -28,11 +28,11 @@ class PyRNN(PyGenerator):
             self,
             batch_size:int,
             max_len:int=1000,
-            temperature:float=None,
+            temperature:float=1.0,
             nucleus_threshold:float=None,
             starting_tokens:torch.Tensor=None
         ) -> list[list[int]]:
-        """Generates a batch of tokens, returning a list of potentially variable length sequences. If both nucleus_threshold and temperature are supplied, sampling with temperature is used"""
+        """Generates a batch of tokens, returning a list of potentially variable length sequences. If both nucleus_threshold and temperature are supplied, nucleus is used"""
         self.eval()
         device = next(self.parameters()).device
         
@@ -45,10 +45,10 @@ class PyRNN(PyGenerator):
         tokens = [] if starting_tokens is None else starting_tokens.T.tolist()
         for _ in range(max_len - starting_tokens.shape[1] if starting_tokens is not None else max_len):
             xt, ht = self.forward(xt, ht)
-            if temperature:
-                xt = sample_with_temp(xt[:,-1,:], temperature=temperature)
-            else:
+            if nucleus_threshold:
                 xt = nucleus_sample(xt[:, -1, :], nucleus_threshold)
+            else:
+                xt = sample_with_temp(xt[:,-1,:], temperature=temperature)
             tokens.append(xt.tolist())
             xt = xt.unsqueeze(1)
         

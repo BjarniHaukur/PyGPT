@@ -15,7 +15,7 @@ torch.random.manual_seed(1337)
 from utils.dataset import MemmapDataset
 from utils.tokenizer import BPETokenizer, BOS_ID, EOS_ID, PAD_ID
 from utils.metrics import bleu_score, syntax_error_score
-from models import PyRNN, PyLSTM, PyTransformer, load_config, model_from_config
+from models import load_config, model_from_config
 
 CHECKPOINT_PATH = Path("checkpoints/models")
 
@@ -69,7 +69,8 @@ def main(args):
                 "n_training_examples": len(train_ds),
                 "n_validation_examples": len(val_ds),
                 "parameter_count": sum([p.numel() for p in model.parameters() if p.requires_grad]),
-                **config_dict
+                **vars(args),
+                **config_dict,
             },
             group=config.wandb_group
         )
@@ -134,14 +135,15 @@ def main(args):
         
         batch = next(iter(val_dl)).to(DEVICE)
         B, L = batch.shape
-        context = int(0.75 * L)
+        context = int(0.25 * L)
+        pred_length = 2 * context
         x = batch[:, :context]
-        y = batch[:, context:]
-        y_hat = model.generate(B, max_len=L, starting_tokens=x)
-        y_hat = [seq[context:] for seq in y_hat]
-        avg_bleu_score = bleu_score(y.tolist(), y_hat)
+        y = batch[:, context:pred_length]
+        y_hat = model.generate(B, max_len=L, starting_tokens=x, nucleus_threshold=0.5)
+        y_hat = [seq[context:pred_length] for seq in y_hat]
+        avg_bleu_score = bleu_score(y.tolist(), y_hat, n_gram=4)
                     
-        gen = model.generate(B, max_len=200)
+        gen = model.generate(B, max_len=200, nucleus_threshold=0.5)
         programs = [tokenizer.detokenize(gen_seq) for gen_seq in gen]
         avg_syntax_error_score = syntax_error_score(programs)
         

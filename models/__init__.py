@@ -2,7 +2,7 @@ from .rnn import PyRNN
 from .lstm import PyLSTM
 from .gru import PyGRU
 from .transformer import PyTransformer
-from .base import ModelConfig, PyRNNConfig, PyLSTMConfig, PyTransformerConfig, PyGenerator, CONFIG_PATH
+from .base import ModelConfig, PyRNNConfig, PyGRUConfig, PyLSTMConfig, PyTransformerConfig, PyGenerator, CONFIG_PATH
 
 import yaml
 from pathlib import Path
@@ -23,10 +23,12 @@ def load_config(file_name: str) -> 'ModelConfig':
 
     if config_dict["model_type"] == "PyRNN":
         return PyRNNConfig(**config_dict)
+    elif config_dict["model_type"] == "PyGRU":
+        return PyGRUConfig(**config_dict)
     elif config_dict["model_type"] == "PyLSTM":
-            return PyLSTMConfig(**config_dict)
+        return PyLSTMConfig(**config_dict)
     elif config_dict["model_type"] == "PyTransformer":
-            return PyTransformerConfig(**config_dict)
+        return PyTransformerConfig(**config_dict)
     else:
         raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
         
@@ -36,10 +38,10 @@ def load_config(file_name: str) -> 'ModelConfig':
 def model_from_config(config: "ModelConfig")-> "PyGenerator":
     if config.model_type == "PyRNN":
         return PyRNN(**config.__dict__)
-    elif config.model_type == "PyLSTM":
-        return PyLSTM(**config.__dict__)
     elif config.model_type == "PyGRU":
         return PyGRU(**config.__dict__)
+    elif config.model_type == "PyLSTM":
+        return PyLSTM(**config.__dict__)
     elif config.model_type ==  "PyTransformer":
         return PyTransformer(**config.__dict__)
     else:

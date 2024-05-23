@@ -23,6 +23,13 @@ class PyRNNConfig(ModelConfig):
     num_layers: int = 2
 
 @dataclass
+class PyGRUConfig(ModelConfig):
+    """Configuration for GRU models."""
+    model_type: str = "PyGRU"
+    hidden_size: int = 256
+    num_layers: int = 2
+
+@dataclass
 class PyLSTMConfig(ModelConfig):
     """Configuration for LSTM models."""
     model_type: str = "PyLSTM"
