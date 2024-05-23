@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 
 def beam_search(model, beam_width:int=3, max_length:int=50, starting_tokens:list[int]=None)->list[int]:
-    sequences = [[BOS_ID] + starting_tokens or []]
+    sequences = [[BOS_ID] + (starting_tokens or [])]
     scores = [0]
     
     for _ in range(max_length):
@@ -22,7 +22,7 @@ def beam_search(model, beam_width:int=3, max_length:int=50, starting_tokens:list
             top_probs, top_indices = torch.topk(p, beam_width)
             for j in range(beam_width):
                 candidate = seq + [top_indices[0, j].item()]
-                score = scores[i] + top_probs[0, j].item()
+                score = scores[i] + torch.log(top_probs[0, j]).item()
                 all_candidates.append((candidate, score))
                 
         ordered = sorted(all_candidates, key=lambda tup: tup[1], reverse=True)

@@ -16,6 +16,7 @@ def save_config(config: "ModelConfig", file_name: str):
     with open(CONFIG_PATH / file_name, 'w') as file:
         yaml.dump(config.__dict__, file)
 
+
 def load_config(file_name: str) -> 'ModelConfig':
     file_name += ".yaml" if not file_name.endswith(".yaml") else ""
     with open(CONFIG_PATH / file_name, 'r') as file:
@@ -31,25 +32,27 @@ def load_config(file_name: str) -> 'ModelConfig':
         return PyTransformerConfig(**config_dict)
     else:
         raise ValueError(f"Invalid model_type, got {config_dict['model_type']}")
-        
-        
-# Things that can be "quantified" are handled by the config, things like architecture changes should be different classes (reduces boilerplate a tone)
-# i.e. storing things like "prenorm" or "postnorm" in the config is nice but is effectively ignored by the __init__ 
-def model_from_config(config: "ModelConfig")-> "PyGenerator":
+
+
+def model_from_config(config: "ModelConfig", device="cpu") -> "PyGenerator":
     if config.model_type == "PyRNN":
-        return PyRNN(**config.__dict__)
+        model = PyRNN(**config.__dict__)
     elif config.model_type == "PyGRU":
-        return PyGRU(**config.__dict__)
+        model = PyGRU(**config.__dict__)
     elif config.model_type == "PyLSTM":
-        return PyLSTM(**config.__dict__)
-    elif config.model_type ==  "PyTransformer":
-        return PyTransformer(**config.__dict__)
+        model = PyLSTM(**config.__dict__)
+    elif config.model_type == "PyTransformer":
+        model = PyTransformer(**config.__dict__)
     else:
         raise ValueError(f"Invalid model_type, got {config.model_type}")
     
-def model_from_checkpoint(checkpoint_path: str)-> "PyGenerator":
-    checkpoint = torch.load(CHECKPOINT_PATH / checkpoint_path)
+    model.to(device)
+    return model
+
+
+def model_from_checkpoint(checkpoint_path: str, device="cpu") -> "PyGenerator":
+    checkpoint = torch.load(CHECKPOINT_PATH / checkpoint_path, map_location=device)
     config = load_config(checkpoint["config_name"])
-    model = model_from_config(config)
+    model = model_from_config(config, device)
     model.load_state_dict(checkpoint["model_state_dict"])
     return model
