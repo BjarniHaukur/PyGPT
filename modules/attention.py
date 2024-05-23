@@ -44,6 +44,7 @@ class PyMultiheadAttention(nn.Module):
     def __init__(self, num_hiddens, num_heads, dropout, bias=False, **kwargs):
         super().__init__()
         self.num_heads = num_heads
+        self.dropout = dropout
         self.attention = DotProductAttention(dropout)
         self.W_q = nn.Linear(num_hiddens, num_hiddens, bias=bias)
         self.W_k = nn.Linear(num_hiddens, num_hiddens, bias=bias)
@@ -73,19 +74,23 @@ class PyMultiheadAttention(nn.Module):
         # After transposing, shape of output queries, keys, or values:
         # (batch_size * num_heads, no. of queries or key-value pairs,num_hiddens / num_heads)
         B = queries.shape[0]
-        L = queries.shape[1]
-        S = keys.shape[1]
-        queries = self.transpose_qkv(self.W_q(queries))
-        keys = self.transpose_qkv(self.W_k(keys))
-        values = self.transpose_qkv(self.W_v(values))
+        L = queries.shape[1] #  no. of queries
+        S = keys.shape[1]  # no. of key-value pairs
+        num_hiddens = queries.shape[2]
         
-        attn_mask = ~torch.tril(torch.ones((self.num_heads*B, L, S), device=queries.device)).bool()
-        
-        output = self.attention(queries, keys, values, attn_mask) # Shape of output: (batch_size * num_heads, no. of queries, num_hiddens / num_heads)
-        
-        output_concat = self.transpose_output(output)# Shape of output_concat: (batch_size, no. of queries, num_hiddens)
 
-        return self.W_o(output_concat)
+        queries = self.W_q(queries).view(B, L, self.num_heads, num_hiddens // self.num_heads).transpose(1, 2) # (B, num_heads,no. of queries, num_hiddens// num_heads)
+        keys = self.W_k(keys).view(B, S, self.num_heads, num_hiddens // self.num_heads).transpose(1, 2) # (B, num_heads,no. of key-value pairs, num_hiddens// num_heads)
+        values = self.W_v(values).view(B, S, self.num_heads, num_hiddens // self.num_heads).transpose(1, 2) # (B, num_heads,no. of key-value pairs, num_hiddens// num_heads)
+        # efficient attention using Flash Attention ( ordinarily no. of queries == no. of KV pairs==T)
+
+        # (B, num_heads, L, num_hiddens// num_heads) x (B, num_heads, num_hiddens// num_heads, S) -> (B, num_heads, L, S)
+        # (B, num_heads, L, S) x (B, num_heads, S, num_hiddens// num_heads) -> (B, num_heads, L, num_hiddens// num_heads)
+        y = torch.nn.functional.scaled_dot_product_attention(queries, keys, values, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
+        y = y.transpose(1, 2).contiguous().view(B, L, num_hiddens) # re-assemble all head outputs side by side (B, L, num_hiddens)
+
+
+        return self.W_o(y)
     
     
 if __name__=="__main__":
@@ -118,5 +123,7 @@ if __name__=="__main__":
 
     out = mha(q, k, v)
     torch_out = torch_mha(q, k, v, attn_mask=attn_mask)
+
+
 
     assert torch.allclose(out, torch_out[0], atol=1e-6)
