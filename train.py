@@ -42,8 +42,8 @@ def main(args):
 
     # I don"t think validation loss matters as much when training generative models, if we manage to overfit on a large dataset then we are golden
     tokenizer = BPETokenizer.load(config.tokenizer_name)
-    train_ds = MemmapDataset("memmap2_train", config_dict.get("block_size", args.seq_len))
-    val_ds = MemmapDataset("memmap2_val", config_dict.get("block_size", args.seq_len))
+    train_ds = MemmapDataset("train", config_dict.get("block_size", args.seq_len))
+    val_ds = MemmapDataset("eval", config_dict.get("block_size", args.seq_len))
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
     # train_ds, _ = random_split(train_ds, [0.01, 0.99])
