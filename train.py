@@ -30,7 +30,7 @@ def collate_fn(batch:list[torch.Tensor], max_len:int=2048):
 
 def main(args):
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    DEVICE = "mps" if torch.backends.mps.is_available() else DEVICE
+    DTYPE = torch.bfloat16 if DEVICE=="cuda" else torch.float16
 
     # speedup
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -99,7 +99,7 @@ def main(args):
             x = batch[..., :-1]
             y = batch[..., 1:]
             
-            with torch.cuda.amp.autocast(True):
+            with torch.amp.autocast(device_type=DEVICE, dtype=DTYPE):
                 y_hat = model(x)
                 if isinstance(y_hat, tuple): y_hat = y_hat[0]
                 loss = criterion(y_hat.reshape(-1, config.vocab_size), y.reshape(-1))
