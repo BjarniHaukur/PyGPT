@@ -2,12 +2,10 @@ model_type: PyTransformer
 wandb_project: PyGPT
 wandb_group: Transformers
 tokenizer_name: py150k_large
+block_size: 512
 vocab_size: 578
-d_model: 256
-d_feedforward: 256
-num_attn_heads: 4
-num_decoder_layers: 4
-context_window_size: 512
+n_layer: 4
+n_head: 4
+n_embd: 256
 dropout: 0.1
-activation: relu
-norm_type: prenorm
+bias: False # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster

@@ -32,7 +32,6 @@ def main(args):
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     DTYPE = torch.bfloat16 if DEVICE=="cuda" else torch.float16
 
-    # speedup
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
     
@@ -43,20 +42,24 @@ def main(args):
 
     # I don"t think validation loss matters as much when training generative models, if we manage to overfit on a large dataset then we are golden
     tokenizer = BPETokenizer.load(config.tokenizer_name)
-    train_ds = MemmapDataset("train", config.tokenizer_name)
-    val_ds = MemmapDataset("eval", config.tokenizer_name)
+    train_ds = MemmapDataset("train", config.tokenizer_name, config_dict.get("block_size", args.seq_len))
+    val_ds = MemmapDataset("eval", config.tokenizer_name, config_dict.get("block_size", args.seq_len))
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
+    # train_ds, _ = random_split(train_ds, [0.01, 0.99])
+    # val_ds, _ = random_split(val_ds, [0.05, 0.95])
     
-    collate = partial(collate_fn, max_len=config_dict.get("context_window", args.seq_len))
+    collate = partial(collate_fn, max_len=config_dict.get("block_size", args.seq_len)-1)
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
     val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
 
 
     model = model_from_config(config).to(DEVICE)
-    optim = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optim = torch.optim.AdamW(model.parameters(), lr=args.lr)
     scaler = torch.cuda.amp.GradScaler()
     
+    print(f"training model with {sum([p.numel() for p in model.parameters() if p.requires_grad])/1e6:.2f}M parameters")
+
     if args.continue_from:
         checkpoint = torch.load(CHECKPOINT_PATH / args.continue_from, map_location=DEVICE)
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -82,12 +85,12 @@ def main(args):
         )
         start_epoch = 0
         
-    criterion = nn.CrossEntropyLoss(ignore_index=PAD_ID)
+    # criterion = nn.CrossEntropyLoss(ignore_index=PAD_ID)
 
     model_path = CHECKPOINT_PATH / wandb.run.name
     model_path.mkdir(parents=True, exist_ok=True)
     
-    model = torch.compile(model)
+    # model = torch.compile(model)
     model.train()
 
     for epoch in range(start_epoch, start_epoch + args.epochs):
@@ -100,9 +103,9 @@ def main(args):
             y = batch[..., 1:]
             
             with torch.amp.autocast(device_type=DEVICE, dtype=DTYPE):
-                y_hat = model(x)
+                y_hat, loss = model(x, y)
                 if isinstance(y_hat, tuple): y_hat = y_hat[0]
-                loss = criterion(y_hat.reshape(-1, config.vocab_size), y.reshape(-1))
+                # loss = criterion(y_hat.reshape(-1, config.vocab_size), y.reshape(-1))
 
             optim.zero_grad()
             scaler.scale(loss).backward()
@@ -129,10 +132,10 @@ def main(args):
                 x_val = val_batch[..., :-1]
                 y_val = val_batch[..., 1:]
 
-                y_hat = model(x_val)
+                y_hat, loss = model(x_val, y_val)
                 if isinstance(y_hat, tuple): y_hat = y_hat[0]
 
-                loss = criterion(y_hat.reshape(-1, config.vocab_size), y_val.reshape(-1))
+                # loss = criterion(y_hat.reshape(-1, config.vocab_size), y_val.reshape(-1))
                 val_loss = loss.detach().cpu().numpy()
                 total_val_loss += val_loss
                 val_tqdm.set_postfix({"val_loss": f"{val_loss:.3f}"})
@@ -148,12 +151,12 @@ def main(args):
         pred_length = 2 * context
         x = batch[:, :context]
         y = batch[:, context:pred_length]
-        y_hat = model.generate(B, max_len=L, starting_tokens=x, nucleus_threshold=0.5)
-        y_hat = [seq[context:pred_length] for seq in y_hat]
-        avg_bleu_score = bleu_score(y.tolist(), y_hat, n_gram=4)
+
+        y_hat = model.generate(x, L)[:, context:pred_length]
+        avg_bleu_score = bleu_score(y.tolist(), y_hat.tolist(), n_gram=4)
                     
-        gen = model.generate(B, max_len=200, nucleus_threshold=0.5)
-        programs = [tokenizer.detokenize(gen_seq) for gen_seq in gen]
+        gen = model.generate(torch.tensor([[BOS_ID]*B], device=DEVICE).long(), L)
+        programs = [tokenizer.detokenize(gen_seq) for gen_seq in gen.tolist()]
         avg_syntax_error_score = syntax_error_score(programs)
         
         wandb.log({"avg_bleu4_score": avg_bleu_score}, step=(epoch+1) * len(train_dl))

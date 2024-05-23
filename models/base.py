@@ -40,14 +40,17 @@ class PyLSTMConfig(ModelConfig):
 class PyTransformerConfig(ModelConfig):
     """Configuration for Transformer models."""
     model_type: str = "PyTransformer"
-    context_window_size: int = 512
-    d_model: int = 512
-    d_feedforward: int = 2048
-    num_attn_heads: int = 8
-    num_decoder_layers: int = 6
+    wandb_project: str = "PyGPT"
+    wandb_group: str = "Transformers"
+    tokenizer_name: str = "py150k_large"
+    block_size: int = 1024
+    vocab_size: int = 578 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
+    n_layer: int = 4
+    n_head: int = 4
+    n_embd: int = 512
     dropout: float = 0.1
-    activation: str = "relu"
-    norm_type: str = "prenorm"
+    bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
+
     
 class PyGenerator(ABC, nn.Module):
     @abstractmethod

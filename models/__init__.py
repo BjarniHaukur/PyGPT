@@ -42,7 +42,7 @@ def model_from_config(config: "ModelConfig", device="cpu") -> "PyGenerator":
     elif config.model_type == "PyLSTM":
         model = PyLSTM(**config.__dict__)
     elif config.model_type == "PyTransformer":
-        model = PyTransformer(**config.__dict__)
+        model = PyTransformer(config)
     else:
         raise ValueError(f"Invalid model_type, got {config.model_type}")
     
