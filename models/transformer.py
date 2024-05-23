@@ -7,6 +7,7 @@ from utils.sample import nucleus_sample, sample_with_temp
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 
 
@@ -35,7 +36,7 @@ class PyTransformer(PyGenerator):
         self.decoder = transformer_decoder.TransformerDecoder(vocab_size, d_model, d_feedforward, num_attn_heads, num_decoder_layers, dropout)
 
     def forward(self, x, hc=None):
-        x = self.pos_embed(self.embed(x))
+        x = self.pos_embed(self.embed(x) * math.sqrt(self.d_model))
         x = self.decoder(x)
         return x, hc
 
