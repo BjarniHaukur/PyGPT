@@ -4,8 +4,8 @@ wandb_group: Transformers
 tokenizer_name: py150k_huge
 block_size: 512
 vocab_size: 2176
-n_layer: 16
-n_head: 16
-n_embd: 1024
+n_layer: 12
+n_head: 12
+n_embd: 768
 dropout: 0.1
 bias: False 
