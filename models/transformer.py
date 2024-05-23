@@ -30,15 +30,13 @@ class PyTransformer(PyGenerator):
         self.context_window_size = context_window_size
         self.dropout = dropout
 
-        self.tok_embed = nn.Embedding(vocab_size, d_model)
+        self.embed = nn.Embedding(vocab_size, d_model)
         self.pos_embed = embedding.PositionalEncoding(d_model, dropout=dropout)
         self.decoder = transformer_decoder.TransformerDecoder(vocab_size, d_model, d_feedforward, num_attn_heads, num_decoder_layers, dropout)
-        self.linear = nn.Linear(d_model, vocab_size)
 
     def forward(self, x, hc=None):
         x = self.pos_embed(self.embed(x))
         x = self.decoder(x)
-        x = self.linear(x)
         return x, hc
 
     @torch.no_grad()
