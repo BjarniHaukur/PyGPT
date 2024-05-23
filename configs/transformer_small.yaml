@@ -1,8 +1,8 @@
 model_type: PyTransformer
 wandb_project: PyGPT
 wandb_group: Transformers
-tokenizer_name: py150k
-vocab_size: 376
+tokenizer_name: py150k_large
+vocab_size: 578
 d_model: 512
 d_feedforward: 512
 num_attn_heads: 8
