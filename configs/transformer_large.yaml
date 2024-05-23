@@ -1,7 +1,7 @@
 model_type: PyTransformer
 wandb_project: PyGPT
 wandb_group: Transformers
-tokenizer_name: py150k_large
+tokenizer_name: py150k_huge
 block_size: 512
 vocab_size: 2176
 n_layer: 16
