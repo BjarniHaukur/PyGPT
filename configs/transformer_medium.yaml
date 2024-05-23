@@ -3,10 +3,10 @@ wandb_project: PyGPT
 wandb_group: Transformers
 tokenizer_name: py150k_large
 vocab_size: 578
-d_model: 256
-d_feedforward: 256
+d_model: 512
+d_feedforward: 512
 num_attn_heads: 4
-num_decoder_layers: 4
+num_decoder_layers: 8
 context_window_size: 512
 dropout: 0.1
 activation: relu
