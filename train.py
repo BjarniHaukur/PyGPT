@@ -152,10 +152,10 @@ def main(args):
         x = batch[:, :context]
         y = batch[:, context:pred_length]
 
-        y_hat = model.generate(x, L)[:, context:pred_length]
+        y_hat = model.generate(x, L, top_k=5)[:, context:pred_length]
         avg_bleu_score = bleu_score(y.tolist(), y_hat.tolist(), n_gram=4)
                     
-        gen = model.generate(torch.tensor([[BOS_ID]*B], device=DEVICE).long(), L)
+        gen = model.generate(torch.tensor([[BOS_ID]*B], device=DEVICE).long(), L, top_k=5)
         programs = [tokenizer.detokenize(gen_seq) for gen_seq in gen.tolist()]
         avg_syntax_error_score = syntax_error_score(programs)
         
