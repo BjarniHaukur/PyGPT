@@ -42,15 +42,15 @@ def main(args):
 
     # I don"t think validation loss matters as much when training generative models, if we manage to overfit on a large dataset then we are golden
     tokenizer = BPETokenizer.load(config.tokenizer_name)
-    train_ds = MemmapDataset("memmap2_train", config_dict.get("block_size", args.seq_len))
-    val_ds = MemmapDataset("memmap2_eval", config_dict.get("block_size", args.seq_len))
+    train_ds = MemmapDataset("train", config_dict.get("block_size", args.seq_len))
+    val_ds = MemmapDataset("eval", config_dict.get("block_size", args.seq_len))
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
     # train_ds, _ = random_split(train_ds, [0.01, 0.99])
     # val_ds, _ = random_split(val_ds, [0.01, 0.99])
     
     collate = partial(collate_fn, max_len=config_dict.get("block_size", args.seq_len)-1)
-    train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
+    train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, shuffle=True, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
     val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
 
 
