@@ -1,7 +1,7 @@
 model_type: PyRNN
 wandb_project: PyGPT
 wandb_group: RNNs
-tokenizer_name: py150k_large
-vocab_size: 578
+tokenizer_name: py150k_huge
+vocab_size: 2176
 hidden_size: 256
 num_layers: 1

@@ -42,12 +42,12 @@ def main(args):
 
     # I don"t think validation loss matters as much when training generative models, if we manage to overfit on a large dataset then we are golden
     tokenizer = BPETokenizer.load(config.tokenizer_name)
-    train_ds = MemmapDataset("train", config_dict.get("block_size", args.seq_len))
-    val_ds = MemmapDataset("eval", config_dict.get("block_size", args.seq_len))
+    train_ds = MemmapDataset("memmap2_train", config_dict.get("block_size", args.seq_len))
+    val_ds = MemmapDataset("memmap2_eval", config_dict.get("block_size", args.seq_len))
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
     # train_ds, _ = random_split(train_ds, [0.01, 0.99])
-    # val_ds, _ = random_split(val_ds, [0.05, 0.95])
+    # val_ds, _ = random_split(val_ds, [0.01, 0.99])
     
     collate = partial(collate_fn, max_len=config_dict.get("block_size", args.seq_len)-1)
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
@@ -56,6 +56,7 @@ def main(args):
 
     model = model_from_config(config).to(DEVICE)
     optim = torch.optim.AdamW(model.parameters(), lr=args.lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=1, gamma=0.9)
     scaler = torch.cuda.amp.GradScaler()
     
     print(f"training model with {sum([p.numel() for p in model.parameters() if p.requires_grad])/1e6:.2f}M parameters")
@@ -119,7 +120,7 @@ def main(args):
             if i % args.log_interval == 0:
                 wandb.log({"train_loss": train_loss}, step=epoch * len(train_dl) + i, commit=True)
 
-
+        scheduler.step()
         wandb.log({"avg_train_loss": total_train_loss / len(train_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
 
         model.eval()
@@ -152,16 +153,15 @@ def main(args):
         x = batch[:, :context]
         y = batch[:, context:pred_length]
 
-        y_hat = model.generate(x, L, top_k=5)[:, context:pred_length]
-        avg_bleu_score = bleu_score(y.tolist(), y_hat.tolist(), n_gram=4)
-                    
-        gen = model.generate(torch.tensor([[BOS_ID]*B], device=DEVICE).long(), L, top_k=5)
-        programs = [tokenizer.detokenize(gen_seq) for gen_seq in gen.tolist()]
+        y_hat = model.generate(x, L, top_k=5)
+        avg_bleu_score = bleu_score(y.tolist(), y_hat[:, context:pred_length].tolist(), n_gram=4)
+        
+        programs = [tokenizer.detokenize(gen_seq) for gen_seq in y_hat.tolist()]
         avg_syntax_error_score = syntax_error_score(programs)
         
         wandb.log({"avg_bleu4_score": avg_bleu_score}, step=(epoch+1) * len(train_dl))
         wandb.log({"avg_syntax_error_score": avg_syntax_error_score}, step=(epoch+1) * len(train_dl))
-        wandb.log({"generated_text": wandb.Html(tokenizer.color_text_html(programs[0]))}, step=(epoch+1) * len(train_dl))
+        wandb.log({"generated_text": wandb.Html(tokenizer.color_text_html(tokenizer.detokenize(y_hat[0, context:].tolist())))}, step=(epoch+1) * len(train_dl))
 
         torch.save({
             'epoch': epoch + 1,
