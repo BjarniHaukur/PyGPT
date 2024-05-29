@@ -14,9 +14,9 @@ DATA_PATH = Path("data/py150k")
 
 class Py150kDataset(Dataset):
     """ Reads and tokenizes each file in the Py150k dataset. """
-    def __init__(self, split: Literal["train","eval"], tokenizer_name: str):
+    def __init__(self, split: Literal["train", "eval"], tokenizer_name: str):
         self.files = open(
-            DATA_PATH / ("python100k_train.txt" if split=="train" else "50k_eval.txt"),
+            DATA_PATH / ("python100k_train.txt" if split == "train" else "50k_eval.txt"),
             "r", encoding='utf-8'
         ).read().split("\n")[:-1]  # last is empty line
         self.tokenizer = BPETokenizer.load(tokenizer_name)
@@ -32,12 +32,11 @@ class Py150kDataset(Dataset):
 
 class MemmapDataset(Dataset):
     """ Reads tokens from a memmap file. """
-    def __init__(self, split: Literal["train","eval"], tokenizer_name: str, num_tokens: int = 4096):
+    def __init__(self, memmap_name:str, num_tokens: int = 4096):
         self.memmap = np.memmap(
-            DATA_PATH / ("train.dat" if split=="train" else "eval.dat"),
+            DATA_PATH / (memmap_name + ".dat"),
             dtype="uint16", mode="r"
         )
-        self.tokenizer = BPETokenizer.load(tokenizer_name)
         self.num_tokens = num_tokens
 
     @lru_cache()
@@ -56,6 +55,7 @@ if __name__ == "__main__":
     
     parser = ArgumentParser(description="Creating a memmap from the Py150k dataset and a given tokenizer")
     parser.add_argument("tokenizer_name", type=str)
+    parser.add_argument("memmap_name", type=str)
     args = parser.parse_args()
 
     tokenizer = BPETokenizer.load(args.tokenizer_name)
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     files_train = open(DATA_PATH / "python100k_train.txt", "r").read().split("\n")[:-1]  # last is empty line
     tokens_train = np.concatenate(process_files(files_train))
-    memmap_train = np.memmap(DATA_PATH / "train.dat", mode="w+", dtype='uint16', shape=(len(tokens_train),))
+    memmap_train = np.memmap(DATA_PATH / (args.memmap_name + "_train.dat"), mode="w+", dtype='uint16', shape=(len(tokens_train),))
     memmap_train[:] = tokens_train
     memmap_train.flush()
 
@@ -85,6 +85,6 @@ if __name__ == "__main__":
 
     files_eval = open(DATA_PATH / "python50k_eval.txt", "r").read().split("\n")[:-1]  # last is empty line
     tokens_eval = np.concatenate(process_files(files_eval))
-    memmap_eval = np.memmap(DATA_PATH / "eval.dat", mode="w+", dtype='uint16', shape=(len(tokens_eval),))
+    memmap_eval = np.memmap(DATA_PATH / (args.memmap_name + "_val.dat"), mode="w+", dtype='uint16', shape=(len(tokens_eval),))
     memmap_eval[:] = tokens_eval
     memmap_eval.flush()

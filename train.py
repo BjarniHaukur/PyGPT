@@ -30,7 +30,10 @@ def collate_fn(batch:list[torch.Tensor], max_len:int=2048):
 
 def main(args):
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    DEVICE = "mps" if torch.backends.mps.is_available() else DEVICE
+    DTYPE = torch.bfloat16 if DEVICE=="cuda" else torch.float16
+
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
     
     print(f"Training on device: {DEVICE}")
 
@@ -39,19 +42,25 @@ def main(args):
 
     # I don"t think validation loss matters as much when training generative models, if we manage to overfit on a large dataset then we are golden
     tokenizer = BPETokenizer.load(config.tokenizer_name)
-    train_ds = MemmapDataset("train", config.tokenizer_name, config_dict.get("block_size", args.seq_len))
-    val_ds = MemmapDataset("eval", config.tokenizer_name, config_dict.get("block_size", args.seq_len))
+    train_ds = MemmapDataset("train", config_dict.get("block_size", args.seq_len))
+    val_ds = MemmapDataset("eval", config_dict.get("block_size", args.seq_len))
     train_extra_ds, val_ds, _ = random_split(val_ds, [0.85, 0.1, 0.05])
     train_ds = ConcatDataset([train_ds, train_extra_ds]) # 142.5k instead of 100k
+    # train_ds, _ = random_split(train_ds, [0.01, 0.99])
+    # val_ds, _ = random_split(val_ds, [0.01, 0.99])
     
-    collate = partial(collate_fn, max_len=config_dict.get("context_window", args.seq_len))
-    train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
+    collate = partial(collate_fn, max_len=config_dict.get("block_size", args.seq_len)-1)
+    train_dl = DataLoader(train_ds, batch_size=args.batch_size, collate_fn=collate, shuffle=True, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
     val_dl = DataLoader(val_ds, batch_size=args.batch_size, collate_fn=collate, prefetch_factor=args.prefetch_factor, num_workers=args.num_workers, persistent_workers=True)
 
 
     model = model_from_config(config).to(DEVICE)
-    optim = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optim = torch.optim.AdamW(model.parameters(), lr=args.lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=1, gamma=0.9)
+    scaler = torch.cuda.amp.GradScaler()
     
+    print(f"training model with {sum([p.numel() for p in model.parameters() if p.requires_grad])/1e6:.2f}M parameters")
+
     if args.continue_from:
         checkpoint = torch.load(CHECKPOINT_PATH / args.continue_from, map_location=DEVICE)
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -81,8 +90,10 @@ def main(args):
 
     model_path = CHECKPOINT_PATH / wandb.run.name
     model_path.mkdir(parents=True, exist_ok=True)
-
+    
+    # model = torch.compile(model)
     model.train()
+
     for epoch in range(start_epoch, start_epoch + args.epochs):
         train_tqdm = tqdm(train_dl, desc=f"Epoch {epoch + 1}/{start_epoch + args.epochs} Training")
         total_train_loss = 0
@@ -92,14 +103,15 @@ def main(args):
             x = batch[..., :-1]
             y = batch[..., 1:]
             
-            y_hat = model(x)
-            if isinstance(y_hat, tuple): y_hat = y_hat[0]
-
-            loss = criterion(y_hat.reshape(-1, config.vocab_size), y.reshape(-1))
+            with torch.amp.autocast(device_type=DEVICE, dtype=DTYPE):
+                y_hat = model(x)
+                if isinstance(y_hat, tuple): y_hat = y_hat[0]
+                loss = criterion(y_hat.reshape(-1, config.vocab_size), y.reshape(-1))
 
             optim.zero_grad()
-            loss.backward()
-            optim.step()
+            scaler.scale(loss).backward()
+            scaler.step(optim)
+            scaler.update()
 
             train_loss = loss.detach().cpu().numpy()
             total_train_loss += train_loss
@@ -108,7 +120,7 @@ def main(args):
             if i % args.log_interval == 0:
                 wandb.log({"train_loss": train_loss}, step=epoch * len(train_dl) + i, commit=True)
 
-
+        scheduler.step()
         wandb.log({"avg_train_loss": total_train_loss / len(train_dl)}, step=(epoch+1) * len(train_dl)) # to get it on the same axis
 
         model.eval()
@@ -121,10 +133,11 @@ def main(args):
                 x_val = val_batch[..., :-1]
                 y_val = val_batch[..., 1:]
 
-                y_hat = model(x_val)
-                if isinstance(y_hat, tuple): y_hat = y_hat[0]
-
-                loss = criterion(y_hat.reshape(-1, config.vocab_size), y_val.reshape(-1))
+                with torch.amp.autocast(device_type=DEVICE, dtype=DTYPE):
+                    y_hat = model(x_val)
+                    if isinstance(y_hat, tuple): y_hat = y_hat[0]
+                    loss = criterion(y_hat.reshape(-1, config.vocab_size), y_val.reshape(-1))
+                    
                 val_loss = loss.detach().cpu().numpy()
                 total_val_loss += val_loss
                 val_tqdm.set_postfix({"val_loss": f"{val_loss:.3f}"})
@@ -176,4 +189,3 @@ if __name__ == "__main__":
     parser.add_argument("--prefetch_factor", type=int, default=4)
     args = parser.parse_args()
     main(args)
-
